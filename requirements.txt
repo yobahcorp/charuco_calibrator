@@ -1,0 +1,14 @@
+# Core numerical
+numpy>=1.23
+
+# OpenCV with ArUco/ChArUco modules (requires contrib build)
+opencv-contrib-python>=4.8
+
+# Config + serialization
+PyYAML>=6.0
+
+# Optional but common for robust estimation / helpers
+scipy>=1.10
+
+# Visualization (live overlay, plots, heatmap)
+matplotlib>=3.7

@@ -1,0 +1,16 @@
+-r requirements.txt
+
+# Formatting / lint
+black>=24.0
+ruff>=0.3
+
+# Testing
+pytest>=7.0
+
+# Type checking
+mypy>=1.6
+types-PyYAML
+
+# Docs (optional)
+mkdocs>=1.5
+mkdocs-material>=9.0

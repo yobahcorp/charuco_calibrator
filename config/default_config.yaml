@@ -1,0 +1,35 @@
+# ChArUco Calibrator — Default Configuration
+# Override via CLI flags or by copying this file and passing --config <path>
+
+board:
+  squares_x: 5          # Number of chessboard squares in X
+  squares_y: 7          # Number of chessboard squares in Y
+  square_length: 0.04   # Square side length in metres
+  marker_length: 0.03   # ArUco marker side length in metres
+  aruco_dict: DICT_4X4_50  # ArUco dictionary name
+
+thresholds:
+  min_corners: 6        # Minimum ChArUco corners to accept a frame
+  min_blur_var: 50.0    # Minimum Laplacian variance (blur rejection)
+  min_score: 0.3        # Minimum overall frame score to accept
+  capture_cooldown_ms: 1500  # Minimum ms between auto-captures
+
+coverage:
+  grid_cols: 4          # Coverage grid columns
+  grid_rows: 4          # Coverage grid rows
+  scale_bins: 5         # Number of scale (board-size) bins
+
+source:
+  camera_id: 0          # OpenCV camera device ID
+  # video_path: null    # Path to video file (overrides camera_id)
+  # ros_topic: null     # ROS 2 image topic (overrides camera_id)
+  width: 0              # Requested capture width (0 = default)
+  height: 0             # Requested capture height (0 = default)
+
+output:
+  output_dir: calibration_output   # Directory for YAML + NPZ output
+  camera_name: camera              # Camera name in calibration YAML
+  save_observations: true          # Also save observations.npz
+
+auto_capture: false     # Start with auto-capture enabled
+recalibrate_every: 5    # Re-run calibration every N accepted frames

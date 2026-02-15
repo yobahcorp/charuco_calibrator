@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "charuco-calibrator"
+version = "0.1.0"
+description = "Interactive ChArUco camera calibration with live feedback, coverage tracking, and heatmaps"
+readme = "docs/CLAUDE_SPEC.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+
+dependencies = [
+    "numpy>=1.23",
+    "opencv-contrib-python>=4.8",
+    "PyYAML>=6.0",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=24.0",
+    "ruff>=0.3",
+    "mypy>=1.6",
+    "types-PyYAML",
+]
+
+[project.scripts]
+charuco-calibrate = "charuco_calibrator.main:cli"
+
+[tool.setuptools.packages.find]
+include = ["charuco_calibrator*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
