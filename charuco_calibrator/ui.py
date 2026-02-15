@@ -113,7 +113,7 @@ class UIRenderer:
         frame: np.ndarray,
         coverage: CoverageState,
     ) -> np.ndarray:
-        """Draw the coverage grid in the bottom-right corner."""
+        """Draw the coverage grid in the bottom-right corner, above the quality bar."""
         vis = frame.copy()
         fh, fw = vis.shape[:2]
 
@@ -121,8 +121,11 @@ class UIRenderer:
         grid_w = coverage.grid_cols * cell_px
         grid_h = coverage.grid_rows * cell_px
         margin = 10
+
+        # Quality bar occupies: 14px bar + 16px label above + 10px bottom margin = 40px
+        quality_block_h = 40
         ox = fw - grid_w - margin
-        oy = fh - grid_h - margin - 20  # space for quality bar
+        oy = fh - grid_h - margin - quality_block_h
 
         for r in range(coverage.grid_rows):
             for c in range(coverage.grid_cols):
@@ -137,7 +140,7 @@ class UIRenderer:
                     cv2.rectangle(vis, (x0, y0), (x1, y1), color, -1)
                 cv2.rectangle(vis, (x0, y0), (x1, y1), self.WHITE, 1)
 
-        # Label
+        # Label above grid
         pct = coverage.grid_coverage * 100
         cv2.putText(
             vis, f"Coverage: {pct:.0f}%",
@@ -150,7 +153,7 @@ class UIRenderer:
         frame: np.ndarray,
         quality: float,
     ) -> np.ndarray:
-        """Draw a quality meter bar at the bottom-right."""
+        """Draw a quality meter bar at the very bottom-right, below the coverage grid."""
         vis = frame.copy()
         fh, fw = vis.shape[:2]
 
@@ -173,10 +176,10 @@ class UIRenderer:
         cv2.rectangle(vis, (ox, oy), (ox + fill_w, oy + bar_h), color, -1)
         # Border
         cv2.rectangle(vis, (ox, oy), (ox + bar_w, oy + bar_h), self.WHITE, 1)
-        # Label
+        # Label above bar
         cv2.putText(
             vis, f"Quality: {quality:.0%}",
-            (ox, oy - 4), self.FONT, 0.4, self.WHITE, 1,
+            (ox, oy - 6), self.FONT, 0.4, self.WHITE, 1,
         )
         return vis
 
