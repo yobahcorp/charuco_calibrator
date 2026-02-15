@@ -8,7 +8,7 @@ from typing import Optional
 import cv2
 import numpy as np
 
-from .config import BoardConfig, resolve_aruco_dict
+from .config import BoardConfig, resolve_aruco_dict, _ARUCO_DICT_MAP
 
 
 @dataclass
@@ -21,6 +21,52 @@ class DetectionResult:
     marker_ids: Optional[np.ndarray] = None  # (M, 1) int32
     num_corners: int = 0
     valid: bool = False
+
+
+def probe_aruco_dictionaries(
+    gray: np.ndarray, board_cfg: BoardConfig
+) -> list[tuple[str, int]]:
+    """Probe all ArUco dictionaries via marker detection filtered by board geometry.
+
+    Uses fast detectMarkers (works on real camera feeds), then keeps only markers
+    whose IDs fall within the valid range for the configured board size.  This
+    avoids both false positives from unrelated patterns and the brittleness of
+    full detectBoard on noisy real-world frames.
+
+    Returns a list of (dict_name, num_valid_markers) sorted descending by count,
+    filtered to count > 0.
+    """
+    if len(gray.shape) == 3:
+        gray = cv2.cvtColor(gray, cv2.COLOR_BGR2GRAY)
+
+    # Number of markers expected on the board (alternating squares)
+    max_marker_id = (board_cfg.squares_x * board_cfg.squares_y) // 2
+
+    results: list[tuple[str, int]] = []
+    use_oo = hasattr(cv2.aruco, "ArucoDetector")
+
+    for name, dict_id in _ARUCO_DICT_MAP.items():
+        aruco_dict = cv2.aruco.getPredefinedDictionary(dict_id)
+        params = cv2.aruco.DetectorParameters()
+
+        if use_oo:
+            ad = cv2.aruco.ArucoDetector(aruco_dict, params)
+            corners, ids, _ = ad.detectMarkers(gray)
+        else:
+            corners, ids, _ = cv2.aruco.detectMarkers(
+                gray, aruco_dict, parameters=params
+            )
+
+        if ids is None or len(ids) == 0:
+            continue
+
+        # Only count markers whose IDs are valid for this board geometry
+        valid = sum(1 for mid in ids.flatten() if mid < max_marker_id)
+        if valid > 0:
+            results.append((name, valid))
+
+    results.sort(key=lambda x: x[1], reverse=True)
+    return results
 
 
 class CharucoDetectorWrapper:
@@ -49,6 +95,10 @@ class CharucoDetectorWrapper:
             self._detector = cv2.aruco.CharucoDetector(
                 self.board, charuco_params, detector_params
             )
+
+    def reinitialize(self, board_cfg: BoardConfig) -> None:
+        """Re-run init setup with a new BoardConfig (e.g. after dictionary swap)."""
+        self.__init__(board_cfg)
 
     def detect(self, frame: np.ndarray) -> DetectionResult:
         """Detect ChArUco corners in a BGR frame."""

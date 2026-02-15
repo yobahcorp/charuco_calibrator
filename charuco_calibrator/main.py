@@ -11,7 +11,7 @@ import cv2
 
 from .calibration import CalibrationManager
 from .config import AppConfig, load_config, apply_cli_overrides
-from .detector import CharucoDetectorWrapper
+from .detector import CharucoDetectorWrapper, probe_aruco_dictionaries
 from .heatmap import CornerHeatmap
 from .image_source import create_source
 from .scoring import CoverageState, score_frame
@@ -93,6 +93,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     last_capture_time = 0.0
+    no_detect_count = 0
+    dict_probed = False
+    suggested_dict: str | None = None
+    tried_dicts: set[str] = {cfg.board.aruco_dict.upper()}
 
     cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_AUTOSIZE)
 
@@ -117,6 +121,35 @@ def main(argv: list[str] | None = None) -> int:
 
             # Detect
             result = detector.detect(frame)
+
+            # Dictionary auto-detection probe
+            if result.valid:
+                no_detect_count = 0
+                dict_probed = False
+                suggested_dict = None
+                tried_dicts = {cfg.board.aruco_dict.upper()}
+                ui.clear_prompt()
+            else:
+                no_detect_count += 1
+                if no_detect_count >= 30 and not dict_probed:
+                    dict_probed = True
+                    probe_hits = probe_aruco_dictionaries(frame, cfg.board)
+                    alt_hits = [
+                        (name, cnt) for name, cnt in probe_hits
+                        if name not in tried_dicts
+                    ]
+                    if alt_hits:
+                        best_name, best_count = alt_hits[0]
+                        suggested_dict = best_name
+                        ui.set_prompt(
+                            f"Found {best_name} ({best_count} markers). "
+                            f"Switch dictionary? Y/N"
+                        )
+                    else:
+                        suggested_dict = None
+                        ui.set_prompt(
+                            "No ArUco markers found with any dictionary [N to dismiss]"
+                        )
 
             # Score
             frame_score = score_frame(
@@ -166,6 +199,20 @@ def main(argv: list[str] | None = None) -> int:
                 ):
                     cal_manager.calibrate((w, h))
 
+            # Handle dictionary switch confirmation
+            if action == Action.CONFIRM and suggested_dict:
+                cfg.board.aruco_dict = suggested_dict
+                tried_dicts.add(suggested_dict.upper())
+                detector.reinitialize(cfg.board)
+                ui.clear_prompt()
+                ui.trigger_flash(f"Switched to {suggested_dict}", now)
+                no_detect_count = 0
+                dict_probed = False
+                suggested_dict = None
+            elif action == Action.DENY:
+                ui.clear_prompt()
+                suggested_dict = None
+
             # Handle other actions
             if action == Action.TOGGLE_AUTO:
                 auto_capture = not auto_capture
@@ -210,6 +257,7 @@ def main(argv: list[str] | None = None) -> int:
                 auto_capture=auto_capture,
                 show_heatmap=show_heatmap,
             )
+            vis = ui.draw_prompt(vis)
             vis = ui.draw_coverage_grid(vis, coverage)
             vis = ui.draw_quality_meter(vis, coverage.quality_meter)
             vis = ui.draw_accepted_flash(vis, now)

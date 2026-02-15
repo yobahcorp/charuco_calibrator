@@ -22,6 +22,8 @@ class Action(Enum):
     SAVE = auto()
     QUIT = auto()
     TOGGLE_HEATMAP = auto()
+    CONFIRM = auto()
+    DENY = auto()
 
 
 # Key mappings
@@ -40,6 +42,10 @@ _KEY_MAP = {
     27: Action.QUIT,  # ESC
     ord("h"): Action.TOGGLE_HEATMAP,
     ord("H"): Action.TOGGLE_HEATMAP,
+    ord("y"): Action.CONFIRM,
+    ord("Y"): Action.CONFIRM,
+    ord("n"): Action.DENY,
+    ord("N"): Action.DENY,
 }
 
 
@@ -62,6 +68,7 @@ class UIRenderer:
     def __init__(self) -> None:
         self._flash_until: float = 0.0
         self._flash_text: str = ""
+        self._prompt_text: str = ""
 
     def draw_status_panel(
         self,
@@ -106,6 +113,31 @@ class UIRenderer:
         else:
             cv2.putText(vis, "RMS: -- (calibrate with 'C')", (10, y), self.FONT, self.FONT_SCALE, self.WHITE, self.THICKNESS)
 
+        return vis
+
+    def set_prompt(self, text: str) -> None:
+        """Set a persistent prompt message."""
+        self._prompt_text = text
+
+    def clear_prompt(self) -> None:
+        """Clear the prompt message."""
+        self._prompt_text = ""
+
+    def draw_prompt(self, frame: np.ndarray) -> np.ndarray:
+        """Draw a yellow prompt banner below the status panel."""
+        if not self._prompt_text:
+            return frame
+        vis = frame.copy()
+        h, w = vis.shape[:2]
+        banner_y = 90
+        banner_h = 28
+        overlay = vis.copy()
+        cv2.rectangle(overlay, (0, banner_y), (w, banner_y + banner_h), (0, 40, 80), -1)
+        cv2.addWeighted(overlay, 0.7, vis, 0.3, 0, vis)
+        cv2.putText(
+            vis, self._prompt_text,
+            (10, banner_y + 19), self.FONT, 0.48, self.YELLOW, self.THICKNESS,
+        )
         return vis
 
     def draw_coverage_grid(
