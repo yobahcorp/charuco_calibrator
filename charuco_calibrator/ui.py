@@ -79,6 +79,7 @@ class UIRenderer:
         rms: Optional[float],
         auto_capture: bool,
         show_heatmap: bool,
+        aruco_dict: str = "",
     ) -> np.ndarray:
         """Draw the status information panel at the top of the frame."""
         vis = frame.copy()
@@ -95,6 +96,12 @@ class UIRenderer:
         hm_str = "ON" if show_heatmap else "OFF"
         line1 = f"Frames: {num_accepted}  |  Auto: {auto_str}  |  Heatmap: {hm_str}"
         cv2.putText(vis, line1, (10, y), self.FONT, self.FONT_SCALE, self.WHITE, self.THICKNESS)
+
+        # Dictionary label — top-right corner
+        if aruco_dict:
+            text_size = cv2.getTextSize(aruco_dict, self.FONT, 0.45, self.THICKNESS)[0]
+            tx = w - text_size[0] - 10
+            cv2.putText(vis, aruco_dict, (tx, y), self.FONT, 0.45, self.CYAN, self.THICKNESS)
 
         # Line 2: current frame score
         y += 22

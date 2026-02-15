@@ -256,6 +256,7 @@ def main(argv: list[str] | None = None) -> int:
                 rms=rms,
                 auto_capture=auto_capture,
                 show_heatmap=show_heatmap,
+                aruco_dict=cfg.board.aruco_dict,
             )
             vis = ui.draw_prompt(vis)
             vis = ui.draw_coverage_grid(vis, coverage)
