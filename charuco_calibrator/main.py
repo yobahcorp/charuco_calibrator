@@ -64,15 +64,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Main calibration loop."""
-    args = parse_args(argv)
+def run(cfg: AppConfig) -> int:
+    """Run the calibration loop with the given config.
 
-    # Load config
-    config_path = args.config or "config/default_config.yaml"
-    cfg = load_config(config_path)
-    cfg = apply_cli_overrides(cfg, args)
-
+    This can be called directly with a programmatically-built AppConfig
+    (e.g. from a ROS node) without going through CLI arg parsing.
+    """
     # Initialize components
     detector = CharucoDetectorWrapper(cfg.board)
     coverage = CoverageState(
@@ -274,6 +271,17 @@ def main(argv: list[str] | None = None) -> int:
         cv2.destroyAllWindows()
 
     return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI entry point: parse args, load config, and run."""
+    args = parse_args(argv)
+
+    config_path = args.config or "config/default_config.yaml"
+    cfg = load_config(config_path)
+    cfg = apply_cli_overrides(cfg, args)
+
+    return run(cfg)
 
 
 def cli() -> None:

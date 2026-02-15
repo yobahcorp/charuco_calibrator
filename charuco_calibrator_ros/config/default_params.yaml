@@ -1,0 +1,15 @@
+charuco_calibrator:
+  ros__parameters:
+    image_topic: /camera/image_raw
+    aruco_dict: DICT_4X4_50
+    squares_x: 5
+    squares_y: 7
+    square_length: 0.04
+    marker_length: 0.03
+    min_corners: 6
+    min_blur_var: 50.0
+    min_score: 0.3
+    capture_cooldown_ms: 1500
+    output_dir: calibration_output
+    camera_name: camera
+    auto_capture: false
