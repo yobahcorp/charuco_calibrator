@@ -44,6 +44,56 @@ charuco-calibrate --camera 0
 pytest tests/
 ```
 
+## 7. (Optional) ROS 2 Humble setup
+
+If you want to run the calibrator as a ROS 2 node with all configuration via ROS parameters, follow these additional steps. This assumes ROS 2 Humble is already installed (`ros-humble-desktop`).
+
+### Source ROS and create a workspace
+
+```bash
+source /opt/ros/humble/setup.bash
+mkdir -p ~/calibration_ws/src
+```
+
+### Symlink or copy the repo into the workspace
+
+```bash
+ln -s /path/to/charuco-calibrator ~/calibration_ws/src/
+```
+
+### Install the core package into the ROS Python environment
+
+```bash
+cd ~/calibration_ws/src/charuco-calibrator
+pip install -e .
+```
+
+### Build the ROS package
+
+```bash
+cd ~/calibration_ws
+colcon build --packages-select charuco_calibrator_ros
+source install/setup.bash
+```
+
+### Run
+
+Start a camera driver (e.g. `usb_cam` or `v4l2_camera`) in one terminal, then launch the calibrator in another:
+
+```bash
+ros2 launch charuco_calibrator_ros calibrator.launch.py
+```
+
+Or run directly with parameter overrides:
+
+```bash
+ros2 run charuco_calibrator_ros charuco_calibrator_node --ros-args \
+    -p image_topic:=/camera/image_raw \
+    -p auto_capture:=true
+```
+
+See `charuco_calibrator_ros/README.md` for the full parameter list and troubleshooting.
+
 ## Notes
 
 - **Headless servers:** OpenCV's `imshow` requires a display. On a headless machine you need X11 forwarding (`ssh -X`) or a physical monitor.

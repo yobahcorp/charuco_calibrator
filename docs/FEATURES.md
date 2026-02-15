@@ -139,10 +139,40 @@ Output directory defaults to `calibration_output/` and is configurable via `--ou
 
 ### 9. ROS 2 Integration (Optional)
 
+There are two ways to use the calibrator with ROS 2:
+
+#### A) Standalone CLI with `--ros-topic`
+
 Pass `--ros-topic /camera/image_raw` to subscribe to a ROS 2 image topic instead of using a local camera. The adapter:
 - Lazily imports `rclpy` and `cv_bridge` — no ROS dependency at install time
 - Runs a background spin thread for non-blocking frame delivery
 - Gives a clear `ImportError` message if ROS 2 packages are not available
+
+```bash
+charuco-calibrate --ros-topic /camera/image_raw
+```
+
+#### B) Dedicated ROS 2 package (recommended for ROS workflows)
+
+The `charuco_calibrator_ros` package provides a proper ROS 2 node where **all** configuration comes from ROS parameters and the **only** image input is a ROS topic. Build it with colcon inside your workspace:
+
+```bash
+colcon build --packages-select charuco_calibrator_ros
+source install/setup.bash
+ros2 launch charuco_calibrator_ros calibrator.launch.py
+```
+
+All board geometry, thresholds, and output settings are exposed as ROS parameters and can be set via a YAML parameter file or on the command line:
+
+```bash
+ros2 run charuco_calibrator_ros charuco_calibrator_node --ros-args \
+    -p image_topic:=/camera/image_raw \
+    -p squares_x:=8 \
+    -p squares_y:=11 \
+    -p auto_capture:=true
+```
+
+See `charuco_calibrator_ros/README.md` for full setup instructions, the complete parameter list, and troubleshooting.
 
 ---
 
