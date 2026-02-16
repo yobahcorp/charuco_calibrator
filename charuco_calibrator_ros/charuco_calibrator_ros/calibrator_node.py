@@ -26,6 +26,8 @@ class CalibratorParameterNode(Node):
         self.declare_parameter("min_blur_var", 50.0)
         self.declare_parameter("min_score", 0.3)
         self.declare_parameter("capture_cooldown_ms", 1500)
+        self.declare_parameter("width", 0)
+        self.declare_parameter("height", 0)
         self.declare_parameter("output_dir", "calibration_output")
         self.declare_parameter("camera_name", "camera")
         self.declare_parameter("auto_capture", False)
@@ -46,6 +48,9 @@ class CalibratorParameterNode(Node):
         cfg.thresholds.min_blur_var = self.get_parameter("min_blur_var").get_parameter_value().double_value
         cfg.thresholds.min_score = self.get_parameter("min_score").get_parameter_value().double_value
         cfg.thresholds.capture_cooldown_ms = self.get_parameter("capture_cooldown_ms").get_parameter_value().integer_value
+
+        cfg.source.width = self.get_parameter("width").get_parameter_value().integer_value
+        cfg.source.height = self.get_parameter("height").get_parameter_value().integer_value
 
         cfg.output.output_dir = self.get_parameter("output_dir").get_parameter_value().string_value
         cfg.output.camera_name = self.get_parameter("camera_name").get_parameter_value().string_value

@@ -70,8 +70,10 @@ class RosImageSource(ImageSource):
     Thread-safe: the ROS callback stores frames in a buffer that read() consumes.
     """
 
-    def __init__(self, topic: str) -> None:
+    def __init__(self, topic: str, width: int = 0, height: int = 0) -> None:
         self._topic = topic
+        self._width = width
+        self._height = height
         self._frame: Optional[np.ndarray] = None
         self._frame_stamp: float = 0.0
         self._lock = None  # set in _init_ros
@@ -114,6 +116,8 @@ class RosImageSource(ImageSource):
 
     def _image_callback(self, msg) -> None:
         frame = self._bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        if self._width > 0 and self._height > 0:
+            frame = cv2.resize(frame, (self._width, self._height))
         with self._lock:
             self._frame = frame
             self._frame_stamp = time.time()
@@ -138,7 +142,7 @@ class RosImageSource(ImageSource):
 def create_source(cfg: SourceConfig) -> ImageSource:
     """Factory: create the appropriate ImageSource from config."""
     if cfg.ros_topic:
-        return RosImageSource(cfg.ros_topic)
+        return RosImageSource(cfg.ros_topic, width=cfg.width, height=cfg.height)
     return CameraSource(
         camera_id=cfg.camera_id,
         video_path=cfg.video_path,
