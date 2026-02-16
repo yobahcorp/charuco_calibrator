@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChArUco Calibrator</title>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --border: #2a2a3a;
+      --text: #e4e4ef;
+      --text-dim: #8888a0;
+      --accent: #4ade80;
+      --accent2: #22d3ee;
+      --accent-dim: rgba(74, 222, 128, 0.1);
+      --accent2-dim: rgba(34, 211, 238, 0.08);
+      --orange: #fb923c;
+      --yellow: #facc15;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Subtle grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image:
+        linear-gradient(rgba(74, 222, 128, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74, 222, 128, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Nav */
+    nav {
+      padding: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .logo span { color: var(--accent); }
+
+    .nav-links { display: flex; gap: 28px; }
+
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    /* Hero */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 28px;
+      letter-spacing: 0.02em;
+    }
+
+    .badge span { color: var(--accent); font-weight: 600; }
+
+    h1 {
+      font-size: clamp(2.8rem, 6vw, 4.2rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    h1 .gradient {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-dim);
+      max-width: 600px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .btn-primary:hover {
+      background: #5eea94;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(74, 222, 128, 0.25);
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+      transform: translateY(-1px);
+    }
+
+    /* Install snippet */
+    .install-block {
+      margin: 50px auto 0;
+      max-width: 520px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 24px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .install-block::before {
+      content: '$ ';
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .install-block code { color: var(--text); }
+
+    /* Features */
+    .section {
+      padding: 80px 0;
+    }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .section h2 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .section > .container > p {
+      color: var(--text-dim);
+      font-size: 1.05rem;
+      max-width: 550px;
+      margin-bottom: 48px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      transition: all 0.25s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(74, 222, 128, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 40px rgba(74, 222, 128, 0.06);
+    }
+
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 16px;
+    }
+
+    .fi-green { background: var(--accent-dim); }
+    .fi-cyan { background: var(--accent2-dim); }
+    .fi-orange { background: rgba(251, 146, 60, 0.1); }
+    .fi-yellow { background: rgba(250, 204, 21, 0.1); }
+
+    .feature-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-card p {
+      color: var(--text-dim);
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+
+    /* Keyboard controls */
+    .keys-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 32px;
+    }
+
+    .key-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 38px;
+      height: 32px;
+      padding: 0 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-bottom: 2px solid var(--border);
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .key-item span {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+    }
+
+    /* Config section */
+    .config-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-top: 32px;
+    }
+
+    .config-header {
+      padding: 14px 20px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .config-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+
+    .config-header span {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-left: 8px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    .config-body {
+      padding: 20px 24px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .config-body .key { color: var(--accent2); }
+    .config-body .val { color: var(--orange); }
+    .config-body .str { color: var(--accent); }
+    .config-body .cmt { color: #555568; }
+
+    /* Scoring table */
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 32px;
+      font-size: 0.9rem;
+    }
+
+    .score-table th {
+      text-align: left;
+      padding: 12px 16px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text-dim);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .score-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .score-table tr:last-child td { border-bottom: none; }
+
+    .weight {
+      display: inline-block;
+      padding: 2px 10px;
+      background: var(--accent-dim);
+      border-radius: 100px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ROS section */
+    .ros-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    @media (max-width: 700px) {
+      .ros-options { grid-template-columns: 1fr; }
+    }
+
+    .ros-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+    }
+
+    .ros-card h3 {
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+
+    .ros-card .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 3px 10px;
+      border-radius: 100px;
+      margin-bottom: 14px;
+    }
+
+    .tag-quick {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .tag-rec {
+      background: var(--accent2-dim);
+      color: var(--accent2);
+    }
+
+    .ros-card p {
+      color: var(--text-dim);
+      font-size: 0.88rem;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .ros-card pre {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      color: var(--text-dim);
+    }
+
+    /* Footer */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    footer p {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .hero { padding: 60px 0 50px; }
+      .section { padding: 50px 0; }
+      .features-grid { grid-template-columns: 1fr; }
+      .keys-grid { grid-template-columns: 1fr; }
+      .nav-links { gap: 16px; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Nav -->
+  <div class="container">
+    <nav>
+      <div class="logo"><span>&lt;/&gt;</span> ChArUco Calibrator</div>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#config">Config</a>
+        <a href="#ros">ROS 2</a>
+        <a href="https://github.com/yobahcorp/charuco_calibrator">GitHub</a>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Hero -->
+  <div class="container">
+    <section class="hero">
+      <div class="badge">Open Source <span>&middot;</span> MIT License <span>&middot;</span> Python 3.8+</div>
+      <h1>Camera Calibration,<br><span class="gradient">Made Visual</span></h1>
+      <p>Interactive ChArUco camera calibration with real-time feedback, coverage tracking, corner heatmaps, and auto-capture. Get a production-quality calibration in minutes.</p>
+      <div class="hero-actions">
+        <a href="https://github.com/yobahcorp/charuco_calibrator" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          View on GitHub
+        </a>
+        <a href="#features" class="btn btn-secondary">Explore Features</a>
+      </div>
+      <div class="install-block"><code>pip install -e git+https://github.com/yobahcorp/charuco_calibrator.git#egg=charuco-calibrator</code></div>
+    </section>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Features -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-label">Features</div>
+      <h2>Everything you need</h2>
+      <p>A complete calibration toolkit with real-time visual feedback at every step.</p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon fi-green">&#9678;</div>
+          <h3>Live Detection</h3>
+          <p>ChArUco corners and ArUco markers detected and drawn on every frame in real time. Supports OpenCV 4.8+ API with automatic legacy fallback.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-cyan">&#9733;</div>
+          <h3>Frame Scoring</h3>
+          <p>Each frame scored on corner count, hull spread, new coverage, and sharpness. Rejected frames show the reason in red &mdash; no bad data gets through.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-orange">&#9635;</div>
+          <h3>Coverage Tracking</h3>
+          <p>Grid coverage, quadrant coverage, scale diversity, and view diversity. A unified quality meter tells you when you have enough data.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-yellow">&#9681;</div>
+          <h3>Corner Heatmap</h3>
+          <p>Gaussian-splat heatmap shows observation density across the image. Instantly see dead zones where you need more board positions.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-green">&#9208;</div>
+          <h3>Auto-Capture</h3>
+          <p>Toggle auto-capture mode and just move the board. Frames are accepted automatically when they meet quality thresholds with configurable cooldown.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-cyan">&#9881;</div>
+          <h3>ROS 2 Ready</h3>
+          <p>Use a simple <code>--ros-topic</code> flag or the dedicated ROS 2 package with full parameter support. All settings exposed as ROS parameters.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Scoring -->
+  <section class="section">
+    <div class="container">
+      <div class="section-label">Scoring</div>
+      <h2>Smart frame selection</h2>
+      <p>Every frame is evaluated on four weighted criteria before it's accepted into the calibration dataset.</p>
+
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Weight</th>
+            <th>What it measures</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Corner ratio</td>
+            <td><span class="weight">0.30</span></td>
+            <td style="color: var(--text-dim)">Fraction of possible ChArUco corners detected</td>
+          </tr>
+          <tr>
+            <td>Hull spread</td>
+            <td><span class="weight">0.20</span></td>
+            <td style="color: var(--text-dim)">Convex hull area of detected corners relative to image area</td>
+          </tr>
+          <tr>
+            <td>New coverage</td>
+            <td><span class="weight">0.30</span></td>
+            <td style="color: var(--text-dim)">How many previously-empty grid cells this frame would fill</td>
+          </tr>
+          <tr>
+            <td>Blur norm</td>
+            <td><span class="weight">0.20</span></td>
+            <td style="color: var(--text-dim)">Image sharpness via Laplacian variance &mdash; higher is better</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Keyboard -->
+  <section class="section">
+    <div class="container">
+      <div class="section-label">Controls</div>
+      <h2>Keyboard shortcuts</h2>
+      <p>Simple, single-key controls for the entire calibration workflow.</p>
+
+      <div class="keys-grid">
+        <div class="key-item"><kbd>SPACE</kbd> <span>Capture frame</span></div>
+        <div class="key-item"><kbd>A</kbd> <span>Toggle auto-capture</span></div>
+        <div class="key-item"><kbd>C</kbd> <span>Run calibration</span></div>
+        <div class="key-item"><kbd>S</kbd> <span>Save results</span></div>
+        <div class="key-item"><kbd>R</kbd> <span>Reset all data</span></div>
+        <div class="key-item"><kbd>H</kbd> <span>Toggle heatmap</span></div>
+        <div class="key-item"><kbd>Y</kbd> / <kbd>N</kbd> <span>Accept / dismiss suggestion</span></div>
+        <div class="key-item"><kbd>Q</kbd> / <kbd>ESC</kbd> <span>Quit</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Config -->
+  <section class="section" id="config">
+    <div class="container">
+      <div class="section-label">Configuration</div>
+      <h2>Fully configurable</h2>
+      <p>All parameters via YAML config file with CLI overrides. Measure your board, set the values, and go.</p>
+
+      <div class="config-block">
+        <div class="config-header">
+          <div class="config-dot" style="background: #ff5f57;"></div>
+          <div class="config-dot" style="background: #febc2e;"></div>
+          <div class="config-dot" style="background: #28c840;"></div>
+          <span>default_config.yaml</span>
+        </div>
+        <div class="config-body">
+          <span class="key">board</span>:<br>
+          &nbsp;&nbsp;<span class="key">squares_x</span>: <span class="val">9</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># squares across (horizontal)</span><br>
+          &nbsp;&nbsp;<span class="key">squares_y</span>: <span class="val">7</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># squares down (vertical)</span><br>
+          &nbsp;&nbsp;<span class="key">square_length</span>: <span class="val">0.04</span> &nbsp;&nbsp;&nbsp;<span class="cmt"># metres</span><br>
+          &nbsp;&nbsp;<span class="key">marker_length</span>: <span class="val">0.03</span> &nbsp;&nbsp;&nbsp;<span class="cmt"># metres (must be &lt; square_length)</span><br>
+          &nbsp;&nbsp;<span class="key">aruco_dict</span>: <span class="str">DICT_4X4_50</span><br>
+          <br>
+          <span class="key">thresholds</span>:<br>
+          &nbsp;&nbsp;<span class="key">min_corners</span>: <span class="val">6</span><br>
+          &nbsp;&nbsp;<span class="key">min_blur_var</span>: <span class="val">50.0</span><br>
+          &nbsp;&nbsp;<span class="key">min_score</span>: <span class="val">0.3</span><br>
+          &nbsp;&nbsp;<span class="key">capture_cooldown_ms</span>: <span class="val">1500</span><br>
+          <br>
+          <span class="key">source</span>:<br>
+          &nbsp;&nbsp;<span class="key">camera_id</span>: <span class="val">0</span><br>
+          &nbsp;&nbsp;<span class="key">width</span>: <span class="val">0</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># 0 = native resolution</span><br>
+          &nbsp;&nbsp;<span class="key">height</span>: <span class="val">0</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ROS 2 -->
+  <section class="section" id="ros">
+    <div class="container">
+      <div class="section-label">Integration</div>
+      <h2>ROS 2 support</h2>
+      <p>Two integration paths depending on your workflow.</p>
+
+      <div class="ros-options">
+        <div class="ros-card">
+          <span class="tag tag-quick">Quick</span>
+          <h3>CLI with --ros-topic</h3>
+          <p>Pass a ROS 2 image topic to the standard CLI. Lazily imports rclpy &mdash; zero ROS dependency at install time.</p>
+          <pre>charuco-calibrate \
+  --ros-topic /camera/image_raw</pre>
+        </div>
+
+        <div class="ros-card">
+          <span class="tag tag-rec">Recommended</span>
+          <h3>Dedicated ROS 2 Package</h3>
+          <p>Full ROS 2 node with all settings as ROS parameters. Build with colcon, launch with ros2 launch.</p>
+          <pre>colcon build --packages-select \
+  charuco_calibrator_ros
+source install/setup.bash
+
+ros2 launch charuco_calibrator_ros \
+  calibrator.launch.py \
+  image_topic:=/camera/image_raw</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Output -->
+  <section class="section">
+    <div class="container">
+      <div class="section-label">Output</div>
+      <h2>ROS-compatible export</h2>
+      <p>Calibration results saved in standard ROS <code>camera_info</code> YAML format, ready to load with <code>camera_info_manager</code>.</p>
+
+      <div class="config-block">
+        <div class="config-header">
+          <div class="config-dot" style="background: #ff5f57;"></div>
+          <div class="config-dot" style="background: #febc2e;"></div>
+          <div class="config-dot" style="background: #28c840;"></div>
+          <span>calibration.yaml</span>
+        </div>
+        <div class="config-body">
+          <span class="key">image_width</span>: <span class="val">1280</span><br>
+          <span class="key">image_height</span>: <span class="val">720</span><br>
+          <span class="key">camera_name</span>: <span class="str">camera</span><br>
+          <span class="key">camera_matrix</span>:<br>
+          &nbsp;&nbsp;<span class="key">rows</span>: <span class="val">3</span><br>
+          &nbsp;&nbsp;<span class="key">cols</span>: <span class="val">3</span><br>
+          &nbsp;&nbsp;<span class="key">data</span>: [<span class="val">fx, 0, cx, 0, fy, cy, 0, 0, 1</span>]<br>
+          <span class="key">distortion_model</span>: <span class="str">plumb_bob</span><br>
+          <span class="key">distortion_coefficients</span>:<br>
+          &nbsp;&nbsp;<span class="key">rows</span>: <span class="val">1</span><br>
+          &nbsp;&nbsp;<span class="key">cols</span>: <span class="val">5</span><br>
+          &nbsp;&nbsp;<span class="key">data</span>: [<span class="val">k1, k2, p1, p2, k3</span>]<br>
+          <span class="key">rms_reprojection_error</span>: <span class="val">0.42</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- CTA -->
+  <section class="section" style="text-align: center;">
+    <div class="container">
+      <h2>Get started</h2>
+      <p style="color: var(--text-dim); font-size: 1.05rem; max-width: 500px; margin: 12px auto 32px;">Clone the repo, print a board, and calibrate your camera in minutes.</p>
+      <div class="hero-actions">
+        <a href="https://github.com/yobahcorp/charuco_calibrator" class="btn btn-primary">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          View on GitHub
+        </a>
+        <a href="https://github.com/yobahcorp/charuco_calibrator/blob/main/INSTALL_UBUNTU.md" class="btn btn-secondary">Ubuntu Install Guide</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>Built by <a href="https://github.com/yobahcorp">yobahcorp</a> &middot; MIT License &middot; <a href="https://github.com/yobahcorp/charuco_calibrator">Source on GitHub</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>
