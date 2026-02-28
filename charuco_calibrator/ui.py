@@ -74,6 +74,7 @@ class UIRenderer:
         self._flash_until: float = 0.0
         self._flash_text: str = ""
         self._prompt_text: str = ""
+        self._border_flash_until: float = 0.0
 
     def draw_status_panel(
         self,
@@ -85,6 +86,7 @@ class UIRenderer:
         auto_capture: bool,
         show_heatmap: bool,
         aruco_dict: str = "",
+        fps: float = 0.0,
     ) -> np.ndarray:
         """Draw the status information panel at the top of the frame."""
         vis = frame.copy()
@@ -109,11 +111,13 @@ class UIRenderer:
         line1 = f"Frames: {num_accepted}  |  Auto: {auto_str}  |  Heatmap: {hm_str}"
         cv2.putText(vis, line1, (pad, y), self.FONT, font_main, self.WHITE, thick)
 
-        # Dictionary label — top-right corner
+        # FPS + dictionary label — top-right corner
+        right_label = f"FPS: {fps:.1f}"
         if aruco_dict:
-            text_size = cv2.getTextSize(aruco_dict, self.FONT, font_sm, thick)[0]
-            tx = w - text_size[0] - pad
-            cv2.putText(vis, aruco_dict, (tx, y), self.FONT, font_sm, self.CYAN, thick)
+            right_label += f"  |  {aruco_dict}"
+        text_size = cv2.getTextSize(right_label, self.FONT, font_sm, thick)[0]
+        tx = w - text_size[0] - pad
+        cv2.putText(vis, right_label, (tx, y), self.FONT, font_sm, self.CYAN, thick)
 
         # Line 2: current frame score
         y += line_h
@@ -272,14 +276,71 @@ class UIRenderer:
         self._flash_text = text
         self._flash_until = current_time + duration
 
+    def trigger_border_flash(self, current_time: float, duration: float = 0.2) -> None:
+        """Trigger a green border flash on frame capture."""
+        self._border_flash_until = current_time + duration
+
+    def draw_border_flash(self, frame: np.ndarray, current_time: float) -> np.ndarray:
+        """Draw a bright green border around the frame on capture."""
+        if current_time >= self._border_flash_until:
+            return frame
+        vis = frame.copy()
+        h, w = vis.shape[:2]
+        s = self._scale(frame)
+        border = max(4, int(6 * s))
+        cv2.rectangle(vis, (0, 0), (w - 1, h - 1), self.GREEN, border)
+        return vis
+
+    def draw_calibrating_indicator(
+        self, frame: np.ndarray, current_time: float
+    ) -> np.ndarray:
+        """Draw a pulsing 'Calibrating...' indicator at the center of the frame."""
+        vis = frame.copy()
+        h, w = vis.shape[:2]
+        s = self._scale(frame)
+        thick = max(2, round(2 * s))
+        font_scale = 0.9 * s
+
+        # Animated dots: cycle through 1-3 dots
+        n_dots = int(current_time * 3) % 3 + 1
+        text = "Calibrating" + "." * n_dots
+
+        text_size = cv2.getTextSize(text, self.FONT, font_scale, thick)[0]
+        tx = (w - text_size[0]) // 2
+        ty = h // 2 + int(60 * s)
+
+        # Pulsing alpha via sine wave
+        alpha = 0.5 + 0.3 * np.sin(current_time * 4)
+
+        pad = int(12 * s)
+        overlay = vis.copy()
+        cv2.rectangle(
+            overlay,
+            (tx - pad, ty - text_size[1] - pad),
+            (tx + text_size[0] + pad, ty + pad),
+            self.BLACK,
+            -1,
+        )
+        cv2.addWeighted(overlay, alpha, vis, 1.0 - alpha, 0, vis)
+        cv2.putText(vis, text, (tx, ty), self.FONT, font_scale, self.CYAN, thick)
+        return vis
+
     def draw_help_hint(self, frame: np.ndarray) -> np.ndarray:
-        """Draw keyboard shortcut hints at the bottom-left."""
+        """Draw keyboard shortcut hints on a dark strip at the bottom."""
         vis = frame.copy()
         fh, fw = vis.shape[:2]
         s = self._scale(frame)
         thick = max(1, round(s))
+        bar_h = int(28 * s)
+        pad = int(10 * s)
+
+        # Semi-transparent dark background strip
+        overlay = vis.copy()
+        cv2.rectangle(overlay, (0, fh - bar_h), (fw, fh), self.BLACK, -1)
+        cv2.addWeighted(overlay, 0.6, vis, 0.4, 0, vis)
+
         hints = "SPACE:capture  A:auto  C:calibrate  R:reset  S:save  H:heatmap  Q:quit"
-        cv2.putText(vis, hints, (int(10 * s), fh - int(10 * s)), self.FONT, 0.4 * s, self.WHITE, thick)
+        cv2.putText(vis, hints, (pad, fh - pad), self.FONT, 0.4 * s, self.WHITE, thick)
         return vis
 
     @staticmethod

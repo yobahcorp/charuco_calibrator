@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -47,6 +48,9 @@ class CalibrationManager:
         self.observations: list[Observation] = []
         self.result: Optional[CalibrationResult] = None
         self._frame_counter = 0
+        self._lock = threading.Lock()
+        self._calibrating = False
+        self._cal_thread: Optional[threading.Thread] = None
 
     def add_observation(
         self,
@@ -61,13 +65,68 @@ class CalibrationManager:
             charuco_ids=charuco_ids,
             frame_index=self._frame_counter,
         )
-        self.observations.append(obs)
+        with self._lock:
+            self.observations.append(obs)
         self._frame_counter += 1
         return len(self.observations) - 1
 
     @property
+    def is_calibrating(self) -> bool:
+        return self._calibrating
+
+    @property
     def num_observations(self) -> int:
         return len(self.observations)
+
+    def calibrate_async(self, image_size: Optional[tuple[int, int]] = None) -> None:
+        """Run calibration in a background thread (non-blocking).
+
+        The result is stored in ``self.result`` once complete.
+        Check ``self.is_calibrating`` to know when it finishes.
+        """
+        if self._calibrating:
+            return
+
+        if image_size is not None:
+            self.image_size = image_size
+
+        # Snapshot observations under lock so the main thread can keep appending
+        with self._lock:
+            obs_copy = list(self.observations)
+
+        if len(obs_copy) < 4:
+            return
+
+        self._calibrating = True
+
+        def _run() -> None:
+            try:
+                obj_points_list = [obs.object_points for obs in obs_copy]
+                img_points_list = [obs.image_points for obs in obs_copy]
+
+                rms, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
+                    obj_points_list,
+                    img_points_list,
+                    self.image_size,
+                    None,
+                    None,
+                )
+
+                result = CalibrationResult(
+                    rms=rms,
+                    camera_matrix=camera_matrix,
+                    dist_coeffs=dist_coeffs,
+                    rvecs=rvecs,
+                    tvecs=tvecs,
+                    image_size=self.image_size,
+                    valid=True,
+                )
+                self.result = result
+            finally:
+                self._calibrating = False
+
+        self._cal_thread = threading.Thread(target=_run, daemon=True)
+        self._cal_thread.start()
 
     def calibrate(self, image_size: Optional[tuple[int, int]] = None) -> CalibrationResult:
         """Run cv2.calibrateCamera on all accumulated observations.

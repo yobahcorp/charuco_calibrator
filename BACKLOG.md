@@ -1,43 +1,7 @@
-# Backlog: Thread Activity Display & GPU Acceleration
+# Backlog
 
 ## Context
-The calibration loop currently runs single-threaded. When `cv2.calibrateCamera()` runs (every 5 accepted frames or on manual `C` press), the UI freezes with no feedback. Additionally, all OpenCV operations run on CPU only — no GPU acceleration is used anywhere.
-
----
-
-## Feature 1: Recalibration Progress / Thread Activity Display
-
-### Problem
-- `cal_manager.calibrate()` blocks the main loop (100-500ms+ depending on observation count)
-- No visual feedback during calibration — the UI just freezes
-- Gets worse as more frames are accumulated
-
-### Plan
-
-#### 1A. Move calibration to a background thread
-**Files:** `charuco_calibrator/calibration.py`, `charuco_calibrator/main.py`
-
-- Add a `calibrate_async()` method to `CalibrationManager` that runs `cv2.calibrateCamera()` in a `threading.Thread`
-- Use a `threading.Lock` to protect shared state (`self._result`, `self._observations`)
-- Add status properties: `is_calibrating: bool`, `calibration_progress: str`
-- In `main.py`, replace synchronous `cal_manager.calibrate((w, h))` calls with `cal_manager.calibrate_async((w, h))`
-- Main loop continues rendering while calibration runs in background
-- On completion, result is picked up on next loop iteration
-
-#### 1B. Add calibration progress indicator to UI
-**Files:** `charuco_calibrator/ui.py`, `charuco_calibrator/main.py`
-
-- Add a `draw_calibrating_indicator()` method to `UIRenderer`
-- Display a spinner or pulsing bar when `cal_manager.is_calibrating` is True
-- Position: center of frame or next to status panel
-- Reuse existing drawing patterns from `draw_quality_meter()` and `draw_accepted_flash()`
-- Show "Calibrating..." text with animated dots or a spinning indicator
-- On completion, show flash message with RMS result (existing `trigger_flash()` pattern)
-
-#### 1C. Thread safety
-- `CalibrationManager` needs a lock around `_observations` list since main thread adds observations while background thread reads them for calibration
-- Copy observations list before passing to calibration thread to avoid contention
-- Pattern already exists in `RosImageSource` (`image_source.py`) — reuse same `threading.Lock` approach
+All OpenCV operations run on CPU only — no GPU acceleration is used anywhere.
 
 ---
 
@@ -80,7 +44,7 @@ The calibration loop currently runs single-threaded. When `cv2.calibrateCamera()
 - Fallback to CPU path when CUDA is not available
 - **Note:** Not applicable for AMD GPUs (A2141 MacBook Pro)
 - **Note:** ArUco detection has no CUDA implementation in OpenCV
-- **Note:** `cv2.calibrateCamera()` has no CUDA variant — threading (Feature 1) is the solution
+- **Note:** `cv2.calibrateCamera()` has no CUDA variant — threading is the solution
 
 #### 2C. Add GPU config option
 
@@ -149,16 +113,6 @@ The calibration loop currently runs single-threaded. When `cv2.calibrateCamera()
 
 ---
 
-## Feature 8: FPS Counter
-
-**Files:** `charuco_calibrator/main.py`, `charuco_calibrator/ui.py`
-
-- Track frame timestamps and compute rolling FPS average (last 30 frames)
-- Display in the status panel: "FPS: 28.5"
-- Helps users monitor if performance degrades as observations accumulate
-
----
-
 ## Feature 9: Per-View Error Display
 
 **Files:** `charuco_calibrator/ui.py`, `charuco_calibrator/main.py`
@@ -169,16 +123,6 @@ The calibration loop currently runs single-threaded. When `cv2.calibrateCamera()
 
 ---
 
-## Feature 10: Capture Visual Pulse
-
-**Files:** `charuco_calibrator/ui.py`
-
-- On frame capture, flash a bright green border around the entire frame for ~200ms
-- More noticeable than the centered "ACCEPTED" text flash when the user is focused on moving the board
-- Add `draw_border_flash()` method to `UIRenderer`
-
----
-
 ## Feature 11: Coverage Guidance Arrows
 
 **Files:** `charuco_calibrator/ui.py`, `charuco_calibrator/scoring.py`
@@ -186,16 +130,6 @@ The calibration loop currently runs single-threaded. When `cv2.calibrateCamera()
 - Analyze empty grid cells and draw an arrow or highlight pointing toward the region needing the most coverage
 - Guide the user where to move the board next
 - Could use the centroid of uncovered cells to determine arrow direction
-
----
-
-## Feature 12: Dark Help Hint Bar
-
-**Files:** `charuco_calibrator/ui.py`
-
-- Add a semi-transparent dark strip behind the bottom help hint text
-- Same pattern as the top status panel (`draw_status_panel()` already does this)
-- Fixes readability on bright backgrounds
 
 ---
 
@@ -214,19 +148,14 @@ The calibration loop currently runs single-threaded. When `cv2.calibrateCamera()
 ---
 
 ## Priority Order
-1. **1A + 1B** — Background calibration thread + progress indicator (highest user impact)
-2. **13** — Auto-prune low-quality frames (direct calibration improvement)
-3. **12** — Dark help hint bar (trivial, immediate readability fix)
-4. **8** — FPS counter (easy, useful feedback)
-5. **10** — Capture visual pulse (easy, better UX)
-6. **4** — Frame deletion / undo (medium, common need)
-7. **3** — Undistortion preview (medium, verification tool)
-8. **5** — Auto-save on quit (medium, prevents data loss)
-9. **2A** — UMat transparent acceleration (easiest GPU win)
-10. **9** — Per-view error display (medium, data already available)
-11. **11** — Coverage guidance arrows (medium, guides workflow)
-12. **1C** — Thread safety hardening
-13. **2C** — GPU config option
-14. **7** — Board generator (nice-to-have utility)
-15. **6** — Stereo calibration (large scope, separate milestone)
-16. **2B** — CUDA acceleration (only if UMat insufficient)
+1. **13** — Auto-prune low-quality frames (direct calibration improvement)
+2. **4** — Frame deletion / undo (medium, common need)
+3. **3** — Undistortion preview (medium, verification tool)
+4. **5** — Auto-save on quit (medium, prevents data loss)
+5. **2A** — UMat transparent acceleration (easiest GPU win)
+6. **9** — Per-view error display (medium, data already available)
+7. **11** — Coverage guidance arrows (medium, guides workflow)
+8. **2C** — GPU config option
+9. **7** — Board generator (nice-to-have utility)
+10. **6** — Stereo calibration (large scope, separate milestone)
+11. **2B** — CUDA acceleration (only if UMat insufficient)

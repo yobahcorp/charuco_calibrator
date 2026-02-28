@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import sys
 import time
 from pathlib import Path
@@ -96,6 +97,8 @@ def run(cfg: AppConfig) -> int:
         return 1
 
     last_capture_time = 0.0
+    _cal_flash_shown = True  # No pending flash at start
+    _frame_times: collections.deque[float] = collections.deque(maxlen=30)
     no_detect_count = 0
     dict_probed = False
     suggested_dict: str | None = None
@@ -122,6 +125,13 @@ def run(cfg: AppConfig) -> int:
                 cal_manager.image_size = (w, h)
 
             now = time.time()
+            _frame_times.append(now)
+
+            # Compute rolling FPS
+            if len(_frame_times) >= 2:
+                fps = (len(_frame_times) - 1) / (_frame_times[-1] - _frame_times[0])
+            else:
+                fps = 0.0
 
             # Detect
             result = detector.detect(frame)
@@ -195,13 +205,15 @@ def run(cfg: AppConfig) -> int:
                 heatmap.add_corners(result.charuco_corners)
                 last_capture_time = now
                 ui.trigger_flash("ACCEPTED", now)
+                ui.trigger_border_flash(now)
 
                 # Auto-recalibrate
                 if (
                     cal_manager.num_observations >= 4
                     and cal_manager.num_observations % cfg.recalibrate_every == 0
                 ):
-                    cal_manager.calibrate((w, h))
+                    cal_manager.calibrate_async((w, h))
+                    _cal_flash_shown = False
 
             # Handle dictionary switch confirmation
             if action == Action.CONFIRM and suggested_dict:
@@ -217,15 +229,25 @@ def run(cfg: AppConfig) -> int:
                 ui.clear_prompt()
                 suggested_dict = None
 
+            # Check if background calibration just finished
+            if (
+                not cal_manager.is_calibrating
+                and cal_manager.result
+                and cal_manager.result.valid
+                and not _cal_flash_shown
+            ):
+                ui.trigger_flash(
+                    f"Calibrated! RMS={cal_manager.result.rms:.3f}", now
+                )
+                _cal_flash_shown = True
+
             # Handle other actions
             if action == Action.TOGGLE_AUTO:
                 auto_capture = not auto_capture
             elif action == Action.CALIBRATE:
                 if cal_manager.num_observations >= 4:
-                    cal_manager.calibrate((w, h))
-                    ui.trigger_flash(
-                        f"Calibrated! RMS={cal_manager.result.rms:.3f}", now
-                    )
+                    cal_manager.calibrate_async((w, h))
+                    _cal_flash_shown = False
                 else:
                     ui.trigger_flash(
                         f"Need >= 4 frames (have {cal_manager.num_observations})", now
@@ -261,11 +283,15 @@ def run(cfg: AppConfig) -> int:
                 auto_capture=auto_capture,
                 show_heatmap=show_heatmap,
                 aruco_dict=cfg.board.aruco_dict,
+                fps=fps,
             )
             vis = ui.draw_prompt(vis)
             vis = ui.draw_coverage_grid(vis, coverage)
             vis = ui.draw_quality_meter(vis, coverage.quality_meter)
             vis = ui.draw_accepted_flash(vis, now)
+            vis = ui.draw_border_flash(vis, now)
+            if cal_manager.is_calibrating:
+                vis = ui.draw_calibrating_indicator(vis, now)
             vis = ui.draw_help_hint(vis)
 
             cv2.imshow(WINDOW_NAME, vis)

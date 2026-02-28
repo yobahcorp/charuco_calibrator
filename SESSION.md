@@ -31,9 +31,20 @@
   - Undistortion preview, undo, auto-save, stereo, board generator
   - FPS counter, per-view errors, capture pulse, guidance arrows, dark hint bar
 
+- Implemented backlog Features 1A+1B+1C, 8, 10, 12 (first batch)
+  - **Feature 1A+1C**: Background calibration thread — `calibrate_async()` with `threading.Thread`, lock-protected observation snapshot, `is_calibrating` property
+  - **Feature 1B**: Calibrating progress indicator — pulsing "Calibrating..." overlay with animated dots
+  - **Feature 12**: Dark help hint bar — semi-transparent strip behind bottom keyboard hints
+  - **Feature 8**: FPS counter — rolling 30-frame average displayed in top-right of status panel
+  - **Feature 10**: Capture visual pulse — green border flash on frame capture (`draw_border_flash()`)
+  - Added 3 new tests for `calibrate_async()` (60 total tests, all passing)
+  - Removed completed features from BACKLOG.md, updated priority order
+
 ### Decisions
 
 - Image folder frames sorted alphabetically (standard `sorted()`)
 - Source priority: `ros_topic` > `image_folder` > `video_path` > `camera_id`
 - Fullscreen window mode kept (maximized alternatives didn't work reliably on macOS)
 - GPU acceleration planned via UMat first (transparent), CUDA optional
+- Background calibration uses snapshot of observations (copied under lock) to avoid contention with main thread
+- Calibration completion detected via `_cal_flash_shown` flag to show RMS flash once

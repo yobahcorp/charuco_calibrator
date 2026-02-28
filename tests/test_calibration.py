@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import cv2
@@ -144,3 +145,51 @@ class TestCalibrationManager:
         errors = mgr.compute_per_view_errors_full()
         assert len(errors) == len(observations)
         assert all(e >= 0 for e in errors)
+
+    def test_calibrate_async(self, detector: CharucoDetectorWrapper):
+        mgr = CalibrationManager()
+        observations, image_size = _generate_observations(detector, n=8)
+        assert len(observations) >= 4
+
+        for obj_pts, img_pts, ids in observations:
+            mgr.add_observation(obj_pts, img_pts, ids)
+
+        mgr.calibrate_async(image_size)
+        assert mgr.is_calibrating or mgr.result is not None
+
+        # Wait for completion (max 5s)
+        for _ in range(500):
+            if not mgr.is_calibrating:
+                break
+            time.sleep(0.01)
+
+        assert not mgr.is_calibrating
+        assert mgr.result is not None
+        assert mgr.result.valid
+        assert mgr.result.rms > 0
+        assert mgr.result.camera_matrix.shape == (3, 3)
+
+    def test_calibrate_async_skips_when_busy(self, detector: CharucoDetectorWrapper):
+        mgr = CalibrationManager()
+        observations, image_size = _generate_observations(detector, n=8)
+        for obj_pts, img_pts, ids in observations:
+            mgr.add_observation(obj_pts, img_pts, ids)
+
+        mgr.calibrate_async(image_size)
+        # Calling again while busy should be a no-op
+        mgr.calibrate_async(image_size)
+
+        # Wait for completion
+        for _ in range(500):
+            if not mgr.is_calibrating:
+                break
+            time.sleep(0.01)
+
+        assert mgr.result is not None
+        assert mgr.result.valid
+
+    def test_calibrate_async_insufficient_frames(self):
+        mgr = CalibrationManager()
+        mgr.calibrate_async((640, 480))
+        assert not mgr.is_calibrating
+        assert mgr.result is None
