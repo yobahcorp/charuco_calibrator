@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 
 import cv2
+import numpy as np
 
 from .calibration import CalibrationManager
 from .config import AppConfig, load_config, apply_cli_overrides
@@ -101,7 +102,7 @@ def run(cfg: AppConfig) -> int:
     suggested_dict: str | None = None
     tried_dicts: set[str] = {cfg.board.aruco_dict.upper()}
 
-    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)
+    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(WINDOW_NAME, 3840, 2160)
     cv2.moveWindow(WINDOW_NAME, 0, 0)
 
@@ -269,6 +270,21 @@ def run(cfg: AppConfig) -> int:
             vis = ui.draw_accepted_flash(vis, now)
             vis = ui.draw_help_hint(vis)
 
+            # Letterbox the frame to fill the window without distortion
+            try:
+                wx, wy, ww, wh = cv2.getWindowImageRect(WINDOW_NAME)
+                if ww > 0 and wh > 0:
+                    vh, vw = vis.shape[:2]
+                    scale = min(ww / vw, wh / vh)
+                    nw, nh = int(vw * scale), int(vh * scale)
+                    resized = cv2.resize(vis, (nw, nh))
+                    canvas = np.zeros((wh, ww, 3), dtype=np.uint8)
+                    x0 = (ww - nw) // 2
+                    y0 = (wh - nh) // 2
+                    canvas[y0:y0 + nh, x0:x0 + nw] = resized
+                    vis = canvas
+            except Exception:
+                pass
             cv2.imshow(WINDOW_NAME, vis)
 
     except KeyboardInterrupt:
