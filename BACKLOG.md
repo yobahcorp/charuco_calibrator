@@ -59,38 +59,6 @@ All OpenCV operations run on CPU only — no GPU acceleration is used anywhere.
 
 ---
 
-## Feature 3: Undistortion Preview
-
-**Files:** `charuco_calibrator/main.py`, `charuco_calibrator/ui.py`
-
-- Add `U` key to toggle a live undistorted view using `cv2.undistort()` with the computed camera matrix
-- Only available after calibration has been run
-- Shows the corrected image so users can visually verify calibration quality before saving
-- Add "Undistort: ON/OFF" to the status panel
-
----
-
-## Feature 4: Frame Deletion / Undo
-
-**Files:** `charuco_calibrator/calibration.py`, `charuco_calibrator/main.py`, `charuco_calibrator/ui.py`
-
-- Add `Z` key to remove the last accepted observation
-- `CalibrationManager.pop_observation()` — removes last entry from the observations list
-- Update coverage state and heatmap accordingly (requires tracking per-frame contributions or recomputing)
-- Flash message: "Removed frame N (X remaining)"
-
----
-
-## Feature 5: Auto-Save on Quit
-
-**Files:** `charuco_calibrator/main.py`, `charuco_calibrator/ui.py`
-
-- When pressing `Q`/`ESC` with an unsaved calibration result, show a prompt: "Save before quitting? Y/N"
-- Track a `_saved` flag on `CalibrationManager` that resets after each new calibration
-- If user presses `Y`, save and quit; `N`, quit without saving
-
----
-
 ## Feature 6: Stereo Calibration
 
 **Files:** `charuco_calibrator/config.py`, `charuco_calibrator/image_source.py`, `charuco_calibrator/calibration.py`, `charuco_calibrator/main.py`
@@ -133,29 +101,12 @@ All OpenCV operations run on CPU only — no GPU acceleration is used anywhere.
 
 ---
 
-## Feature 13: Auto-Prune Low-Quality Frames
-
-**Files:** `charuco_calibrator/calibration.py`, `charuco_calibrator/main.py`, `charuco_calibrator/scoring.py`
-
-- After each `calibrateCamera()` call, compute per-view reprojection errors via `compute_per_view_errors_full()`
-- Identify frames whose per-view error exceeds a threshold (e.g., 2x the mean RMS)
-- Automatically remove those observations and re-calibrate
-- Repeat until no outliers remain or a max iteration count is reached
-- Flash message showing how many frames were pruned: "Pruned 3 frames, RMS: 0.42 -> 0.31"
-- Add `auto_prune: bool = True` and `prune_threshold: float = 2.0` to config
-- Also useful: reject frames at capture time if they would increase RMS above a threshold (requires trial calibration)
-
----
-
 ## Priority Order
-1. **13** — Auto-prune low-quality frames (direct calibration improvement)
-2. **4** — Frame deletion / undo (medium, common need)
-3. **3** — Undistortion preview (medium, verification tool)
-4. **5** — Auto-save on quit (medium, prevents data loss)
-5. **2A** — UMat transparent acceleration (easiest GPU win)
-6. **9** — Per-view error display (medium, data already available)
-7. **11** — Coverage guidance arrows (medium, guides workflow)
-8. **2C** — GPU config option
-9. **7** — Board generator (nice-to-have utility)
-10. **6** — Stereo calibration (large scope, separate milestone)
-11. **2B** — CUDA acceleration (only if UMat insufficient)
+
+1. **2A** — UMat transparent acceleration (easiest GPU win)
+2. **9** — Per-view error display (medium, data already available)
+3. **11** — Coverage guidance arrows (medium, guides workflow)
+4. **2C** — GPU config option
+5. **7** — Board generator (nice-to-have utility)
+6. **6** — Stereo calibration (large scope, separate milestone)
+7. **2B** — CUDA acceleration (only if UMat insufficient)

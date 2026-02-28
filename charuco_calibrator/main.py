@@ -89,6 +89,8 @@ def run(cfg: AppConfig) -> int:
     heatmap: CornerHeatmap | None = None
     show_heatmap = cfg.show_heatmap
     auto_capture = cfg.auto_capture
+    show_undistort = False
+    _saved = False
 
     # Image source
     source = create_source(cfg.source)
@@ -179,6 +181,14 @@ def run(cfg: AppConfig) -> int:
             # Draw detection overlay
             vis = detector.draw_detection(frame, result)
 
+            # Undistortion preview
+            if show_undistort and cal_manager.result and cal_manager.result.valid:
+                vis = cv2.undistort(
+                    vis,
+                    cal_manager.result.camera_matrix,
+                    cal_manager.result.dist_coeffs,
+                )
+
             # Heatmap blend
             if show_heatmap and heatmap is not None:
                 vis = heatmap.blend_onto(vis)
@@ -236,10 +246,27 @@ def run(cfg: AppConfig) -> int:
                 and cal_manager.result.valid
                 and not _cal_flash_shown
             ):
-                ui.trigger_flash(
-                    f"Calibrated! RMS={cal_manager.result.rms:.3f}", now
-                )
+                # Auto-prune outlier frames
+                if cfg.auto_prune and cal_manager.num_observations >= 4:
+                    pruned, old_rms, new_rms = cal_manager.prune_outliers(
+                        threshold=cfg.prune_threshold,
+                    )
+                    if pruned > 0:
+                        ui.trigger_flash(
+                            f"Pruned {pruned} frames, RMS: {old_rms:.3f} -> {new_rms:.3f}",
+                            now,
+                            duration=1.5,
+                        )
+                    else:
+                        ui.trigger_flash(
+                            f"Calibrated! RMS={cal_manager.result.rms:.3f}", now
+                        )
+                else:
+                    ui.trigger_flash(
+                        f"Calibrated! RMS={cal_manager.result.rms:.3f}", now
+                    )
                 _cal_flash_shown = True
+                _saved = False  # New calibration invalidates previous save
 
             # Handle other actions
             if action == Action.TOGGLE_AUTO:
@@ -266,11 +293,54 @@ def run(cfg: AppConfig) -> int:
                     if cfg.output.save_observations:
                         cal_manager.save_observations_npz(out_dir / "observations.npz")
                     ui.trigger_flash(f"Saved to {yaml_path}", now, duration=1.5)
+                    _saved = True
                 else:
                     ui.trigger_flash("Calibrate first (press C)", now)
             elif action == Action.TOGGLE_HEATMAP:
                 show_heatmap = not show_heatmap
+            elif action == Action.UNDO:
+                removed = cal_manager.pop_observation()
+                if removed is not None:
+                    ui.trigger_flash(
+                        f"Removed frame ({cal_manager.num_observations} remaining)",
+                        now,
+                    )
+                else:
+                    ui.trigger_flash("No frames to undo", now)
+            elif action == Action.UNDISTORT:
+                if cal_manager.result and cal_manager.result.valid:
+                    show_undistort = not show_undistort
+                else:
+                    ui.trigger_flash("Calibrate first (press C)", now)
             elif action == Action.QUIT:
+                # Auto-save prompt if unsaved calibration exists
+                if (
+                    cal_manager.result
+                    and cal_manager.result.valid
+                    and not _saved
+                ):
+                    ui.set_prompt("Save before quitting? Y/N")
+                    cv2.imshow(WINDOW_NAME, vis)
+                    while True:
+                        save_action = ui.poll_key(wait_ms=50)
+                        if save_action == Action.CONFIRM:
+                            out_dir = Path(cfg.output.output_dir)
+                            yaml_path = cal_manager.save_yaml(
+                                out_dir / "calibration.yaml",
+                                cfg.output.camera_name,
+                            )
+                            if cfg.output.save_observations:
+                                cal_manager.save_observations_npz(
+                                    out_dir / "observations.npz"
+                                )
+                            ui.clear_prompt()
+                            ui.trigger_flash(
+                                f"Saved to {yaml_path}", now, duration=0.5
+                            )
+                            break
+                        elif save_action == Action.DENY:
+                            ui.clear_prompt()
+                            break
                 break
 
             # Draw UI overlays
@@ -284,6 +354,7 @@ def run(cfg: AppConfig) -> int:
                 show_heatmap=show_heatmap,
                 aruco_dict=cfg.board.aruco_dict,
                 fps=fps,
+                show_undistort=show_undistort,
             )
             vis = ui.draw_prompt(vis)
             vis = ui.draw_coverage_grid(vis, coverage)

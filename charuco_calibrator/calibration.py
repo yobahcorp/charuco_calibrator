@@ -198,6 +198,59 @@ class CalibrationManager:
             errors.append(err)
         return np.array(errors)
 
+    def pop_observation(self) -> Optional[Observation]:
+        """Remove and return the last observation, or None if empty."""
+        with self._lock:
+            if not self.observations:
+                return None
+            return self.observations.pop()
+
+    def prune_outliers(
+        self,
+        threshold: float = 2.0,
+        max_iterations: int = 3,
+    ) -> tuple[int, float, float]:
+        """Remove observations with per-view error > threshold * mean RMS.
+
+        Recalibrates after each round of pruning until no outliers remain
+        or max_iterations is reached.
+
+        Returns:
+            (num_pruned, old_rms, new_rms)
+        """
+        if self.result is None or not self.result.valid:
+            return (0, 0.0, 0.0)
+
+        old_rms = self.result.rms
+        total_pruned = 0
+
+        for _ in range(max_iterations):
+            errors = self.compute_per_view_errors_full()
+            if len(errors) == 0:
+                break
+
+            mean_err = float(np.mean(errors))
+            cutoff = threshold * mean_err
+            outlier_mask = errors > cutoff
+
+            if not np.any(outlier_mask):
+                break
+
+            # Remove outliers (iterate in reverse to preserve indices)
+            indices_to_remove = sorted(np.where(outlier_mask)[0], reverse=True)
+            with self._lock:
+                for idx in indices_to_remove:
+                    self.observations.pop(idx)
+            total_pruned += len(indices_to_remove)
+
+            # Re-calibrate with remaining observations
+            if len(self.observations) < 4:
+                break
+            self.calibrate(self.image_size)
+
+        new_rms = self.result.rms if self.result and self.result.valid else old_rms
+        return (total_pruned, old_rms, new_rms)
+
     def save_yaml(
         self,
         path: str | Path,

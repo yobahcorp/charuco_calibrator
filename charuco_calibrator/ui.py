@@ -24,6 +24,8 @@ class Action(Enum):
     TOGGLE_HEATMAP = auto()
     CONFIRM = auto()
     DENY = auto()
+    UNDO = auto()
+    UNDISTORT = auto()
 
 
 # Key mappings
@@ -46,6 +48,10 @@ _KEY_MAP = {
     ord("Y"): Action.CONFIRM,
     ord("n"): Action.DENY,
     ord("N"): Action.DENY,
+    ord("z"): Action.UNDO,
+    ord("Z"): Action.UNDO,
+    ord("u"): Action.UNDISTORT,
+    ord("U"): Action.UNDISTORT,
 }
 
 
@@ -87,6 +93,7 @@ class UIRenderer:
         show_heatmap: bool,
         aruco_dict: str = "",
         fps: float = 0.0,
+        show_undistort: bool = False,
     ) -> np.ndarray:
         """Draw the status information panel at the top of the frame."""
         vis = frame.copy()
@@ -108,7 +115,8 @@ class UIRenderer:
         # Line 1: frame count + auto + heatmap status
         auto_str = "ON" if auto_capture else "OFF"
         hm_str = "ON" if show_heatmap else "OFF"
-        line1 = f"Frames: {num_accepted}  |  Auto: {auto_str}  |  Heatmap: {hm_str}"
+        ud_str = "  |  Undistort: ON" if show_undistort else ""
+        line1 = f"Frames: {num_accepted}  |  Auto: {auto_str}  |  Heatmap: {hm_str}{ud_str}"
         cv2.putText(vis, line1, (pad, y), self.FONT, font_main, self.WHITE, thick)
 
         # FPS + dictionary label — top-right corner
@@ -339,7 +347,7 @@ class UIRenderer:
         cv2.rectangle(overlay, (0, fh - bar_h), (fw, fh), self.BLACK, -1)
         cv2.addWeighted(overlay, 0.6, vis, 0.4, 0, vis)
 
-        hints = "SPACE:capture  A:auto  C:calibrate  R:reset  S:save  H:heatmap  Q:quit"
+        hints = "SPACE:capture  A:auto  C:calibrate  R:reset  S:save  H:heatmap  U:undistort  Z:undo  Q:quit"
         cv2.putText(vis, hints, (pad, fh - pad), self.FONT, 0.4 * s, self.WHITE, thick)
         return vis
 

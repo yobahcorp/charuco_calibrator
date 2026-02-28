@@ -40,6 +40,15 @@
   - Added 3 new tests for `calibrate_async()` (60 total tests, all passing)
   - Removed completed features from BACKLOG.md, updated priority order
 
+- Implemented backlog Features 13, 4, 3, 5 (second batch)
+  - **Feature 13**: Auto-prune outlier frames — `prune_outliers()` removes frames with per-view error > threshold * mean, re-calibrates iteratively. Config: `auto_prune: true`, `prune_threshold: 2.0`
+  - **Feature 4**: Frame deletion / undo — `Z` key removes last observation via `pop_observation()`, flash message shows remaining count
+  - **Feature 3**: Undistortion preview — `U` key toggles live `cv2.undistort()` overlay, "Undistort: ON" in status panel, only after calibration
+  - **Feature 5**: Auto-save on quit — `Q`/`ESC` prompts "Save before quitting? Y/N" when unsaved calibration exists, tracks `_saved` flag
+  - Added 4 new tests for `pop_observation()` and `prune_outliers()` (64 total, all passing)
+  - Updated help hints: added U:undistort and Z:undo
+  - Removed completed features from BACKLOG.md, updated priority order
+
 ### Decisions
 
 - Image folder frames sorted alphabetically (standard `sorted()`)

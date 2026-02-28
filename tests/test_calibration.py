@@ -193,3 +193,41 @@ class TestCalibrationManager:
         mgr.calibrate_async((640, 480))
         assert not mgr.is_calibrating
         assert mgr.result is None
+
+    def test_pop_observation(self, detector: CharucoDetectorWrapper):
+        mgr = CalibrationManager()
+        observations, _ = _generate_observations(detector, n=3)
+        for obj_pts, img_pts, ids in observations:
+            mgr.add_observation(obj_pts, img_pts, ids)
+
+        assert mgr.num_observations == len(observations)
+        removed = mgr.pop_observation()
+        assert removed is not None
+        assert mgr.num_observations == len(observations) - 1
+
+    def test_pop_observation_empty(self):
+        mgr = CalibrationManager()
+        assert mgr.pop_observation() is None
+
+    def test_prune_outliers(self, detector: CharucoDetectorWrapper):
+        mgr = CalibrationManager()
+        observations, image_size = _generate_observations(detector, n=8)
+        assert len(observations) >= 4
+        for obj_pts, img_pts, ids in observations:
+            mgr.add_observation(obj_pts, img_pts, ids)
+
+        mgr.calibrate(image_size)
+        initial_count = mgr.num_observations
+
+        pruned, old_rms, new_rms = mgr.prune_outliers(threshold=2.0)
+        # Pruning should not crash; may or may not remove frames
+        assert pruned >= 0
+        assert mgr.num_observations <= initial_count
+        assert old_rms > 0
+        assert new_rms > 0
+
+    def test_prune_outliers_no_result(self):
+        mgr = CalibrationManager()
+        pruned, old_rms, new_rms = mgr.prune_outliers()
+        assert pruned == 0
+        assert old_rms == 0.0

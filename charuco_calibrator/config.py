@@ -114,6 +114,8 @@ class AppConfig:
     auto_capture: bool = False
     show_heatmap: bool = False
     recalibrate_every: int = 5
+    auto_prune: bool = True
+    prune_threshold: float = 2.0
 
 
 # ---------------------------------------------------------------------------
