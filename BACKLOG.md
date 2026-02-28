@@ -29,19 +29,7 @@
 
 ---
 
-## Feature 7: Board Generator
-
-**Files:** `charuco_calibrator/main.py`, `charuco_calibrator/detector.py`
-
-- Add `--print-board <output.png>` CLI flag
-- Generate a printable ChArUco board image matching the current config using `board.generateImage()`
-- Print to file and exit (no GUI needed)
-- Saves users from needing a separate tool to create matching boards
-
----
-
 ## Priority Order
 
-1. **7** — Board generator (nice-to-have utility)
-2. **6** — Stereo calibration (large scope, separate milestone)
-3. **2B** — CUDA acceleration (only if UMat insufficient)
+1. **6** — Stereo calibration (large scope, separate milestone)
+2. **2B** — CUDA acceleration (only if UMat insufficient)

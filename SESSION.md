@@ -55,6 +55,10 @@
   - **Feature 11**: Coverage guidance arrows — yellow arrow from frame center toward least-covered grid region, computed from centroid of empty cells
   - Removed completed features from BACKLOG.md (3 items remaining: board generator, stereo, CUDA)
 
+- Implemented Feature 7: Board generator
+  - `--print-board <output.png>` generates a printable ChArUco board image matching config and exits
+  - Removed from BACKLOG.md (2 items remaining: stereo, CUDA)
+
 ### Decisions
 
 - Image folder frames sorted alphabetically (standard `sorted()`)

@@ -68,6 +68,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Camera name for the calibration YAML",
     )
+    parser.add_argument(
+        "--print-board",
+        type=str,
+        default=None,
+        metavar="OUTPUT",
+        help="Generate a printable ChArUco board image and exit",
+    )
     return parser.parse_args(argv)
 
 
@@ -412,6 +419,16 @@ def main(argv: list[str] | None = None) -> int:
     config_path = args.config or "config/default_config.yaml"
     cfg = load_config(config_path)
     cfg = apply_cli_overrides(cfg, args)
+
+    # Board generator mode — print and exit
+    if getattr(args, "print_board", None):
+        detector = CharucoDetectorWrapper(cfg.board)
+        board_img = detector.generate_board_image(800, 1000)
+        out_path = Path(args.print_board)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(out_path), board_img)
+        print(f"Board image saved to {out_path}")
+        return 0
 
     return run(cfg)
 
