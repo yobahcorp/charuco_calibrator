@@ -102,8 +102,8 @@ def run(cfg: AppConfig) -> int:
     tried_dicts: set[str] = {cfg.board.aruco_dict.upper()}
 
     cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(WINDOW_NAME, 3840, 2160)
+    cv2.moveWindow(WINDOW_NAME, 0, 0)
 
     try:
         while True:
