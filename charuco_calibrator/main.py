@@ -86,7 +86,7 @@ def run(cfg: AppConfig) -> int:
     cal_manager = CalibrationManager()
     ui = UIRenderer()
     heatmap: CornerHeatmap | None = None
-    show_heatmap = False
+    show_heatmap = cfg.show_heatmap
     auto_capture = cfg.auto_capture
 
     # Image source

@@ -112,6 +112,7 @@ class AppConfig:
     source: SourceConfig = field(default_factory=SourceConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     auto_capture: bool = False
+    show_heatmap: bool = False
     recalibrate_every: int = 5
 
 

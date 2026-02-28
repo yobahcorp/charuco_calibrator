@@ -2,11 +2,11 @@
 # Override via CLI flags or by copying this file and passing --config <path>
 
 board:
-  squares_x: 5          # Number of chessboard squares in X
+  squares_x: 9          # Number of chessboard squares in X
   squares_y: 7          # Number of chessboard squares in Y
-  square_length: 0.04   # Square side length in metres
-  marker_length: 0.03   # ArUco marker side length in metres
-  aruco_dict: DICT_4X4_50  # ArUco dictionary name
+  square_length: 0.10   # Square side length in metres
+  marker_length: 0.08   # ArUco marker side length in metres
+  aruco_dict: DICT_7X7_50  # ArUco dictionary name
 
 thresholds:
   min_corners: 6        # Minimum ChArUco corners to accept a frame
@@ -32,5 +32,7 @@ output:
   camera_name: camera              # Camera name in calibration YAML
   save_observations: true          # Also save observations.npz
 
-auto_capture: false     # Start with auto-capture enabled
+auto_capture: true      # Start with auto-capture enabled
+show_heatmap: true      # Start with heatmap overlay enabled
 recalibrate_every: 5    # Re-run calibration every N accepted frames
+
