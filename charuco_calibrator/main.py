@@ -44,6 +44,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Path to a video file to use instead of a live camera",
     )
     parser.add_argument(
+        "--image-folder",
+        type=str,
+        default=None,
+        help="Path to a folder of images to use as frames",
+    )
+    parser.add_argument(
         "--ros-topic",
         type=str,
         default=None,
@@ -102,8 +108,8 @@ def run(cfg: AppConfig) -> int:
         while True:
             ok, frame = source.read()
             if not ok or frame is None:
-                # For video files, we've reached the end
-                if cfg.source.video_path:
+                # For video files / image folders, we've reached the end
+                if cfg.source.video_path or cfg.source.image_folder:
                     break
                 time.sleep(0.01)
                 continue

@@ -22,6 +22,7 @@ coverage:
 source:
   camera_id: 0          # OpenCV camera device ID
   # video_path: null    # Path to video file (overrides camera_id)
+  # image_folder: null  # Path to folder of images (overrides camera_id)
   # ros_topic: null     # ROS 2 image topic (overrides camera_id)
   width: 0              # Requested capture width (0 = default)
   height: 0             # Requested capture height (0 = default)

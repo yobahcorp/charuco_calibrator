@@ -1,8 +1,10 @@
-"""Image source abstraction: OpenCV camera, video file, and optional ROS 2 adapter."""
+"""Image source abstraction: OpenCV camera, video file, image folder, and optional ROS 2 adapter."""
 
 from __future__ import annotations
 
 import abc
+import glob
+import os
 import time
 from typing import Optional
 
@@ -62,6 +64,39 @@ class CameraSource(ImageSource):
     @property
     def is_open(self) -> bool:
         return self._cap.isOpened()
+
+
+class ImageFolderSource(ImageSource):
+    """Serves frames from a folder of image files in alphabetical order."""
+
+    _EXTENSIONS = ("*.png", "*.jpg", "*.jpeg", "*.bmp", "*.tiff", "*.tif")
+
+    def __init__(self, folder_path: str, width: int = 0, height: int = 0) -> None:
+        self._width = width
+        self._height = height
+        files: list[str] = []
+        for ext in self._EXTENSIONS:
+            files.extend(glob.glob(os.path.join(folder_path, ext)))
+        self._files = sorted(files)
+        self._index = 0
+
+    def read(self) -> tuple[bool, Optional[np.ndarray]]:
+        if self._index >= len(self._files):
+            return False, None
+        frame = cv2.imread(self._files[self._index])
+        self._index += 1
+        if frame is None:
+            return False, None
+        if self._width > 0 and self._height > 0:
+            frame = cv2.resize(frame, (self._width, self._height))
+        return True, frame
+
+    def release(self) -> None:
+        pass
+
+    @property
+    def is_open(self) -> bool:
+        return self._index < len(self._files)
 
 
 class RosImageSource(ImageSource):
@@ -143,6 +178,8 @@ def create_source(cfg: SourceConfig) -> ImageSource:
     """Factory: create the appropriate ImageSource from config."""
     if cfg.ros_topic:
         return RosImageSource(cfg.ros_topic, width=cfg.width, height=cfg.height)
+    if cfg.image_folder:
+        return ImageFolderSource(cfg.image_folder, width=cfg.width, height=cfg.height)
     return CameraSource(
         camera_id=cfg.camera_id,
         video_path=cfg.video_path,

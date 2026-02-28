@@ -87,6 +87,7 @@ class SourceConfig:
 
     camera_id: int = 0
     video_path: Optional[str] = None
+    image_folder: Optional[str] = None
     ros_topic: Optional[str] = None
     width: int = 0  # 0 = use default
     height: int = 0
@@ -150,6 +151,11 @@ def apply_cli_overrides(cfg: AppConfig, args: argparse.Namespace) -> AppConfig:
         cfg.source.ros_topic = None
     if getattr(args, "video", None) is not None:
         cfg.source.video_path = args.video
+        cfg.source.image_folder = None
+        cfg.source.ros_topic = None
+    if getattr(args, "image_folder", None) is not None:
+        cfg.source.image_folder = args.image_folder
+        cfg.source.video_path = None
         cfg.source.ros_topic = None
     if getattr(args, "ros_topic", None) is not None:
         cfg.source.ros_topic = args.ros_topic
