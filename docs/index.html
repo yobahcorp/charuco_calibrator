@@ -567,6 +567,30 @@
           <h3>ROS 2 Ready</h3>
           <p>Use a simple <code>--ros-topic</code> flag or the dedicated ROS 2 package with full parameter support. All settings exposed as ROS parameters.</p>
         </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-orange">&#9850;</div>
+          <h3>Background Calibration</h3>
+          <p>Calibration runs in a background thread &mdash; the UI never freezes. A pulsing indicator shows progress and auto-prune removes outlier frames.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-yellow">&#10132;</div>
+          <h3>Guidance Arrows</h3>
+          <p>A yellow arrow points toward the least-covered region of the frame. Per-view error bars show which frames contribute most to calibration error.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-green">&#9686;</div>
+          <h3>Undistort Preview</h3>
+          <p>Press <kbd>U</kbd> to toggle a live undistortion preview. Press <kbd>Z</kbd> to undo the last capture. Auto-save prompt on quit protects your work.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-cyan">&#9638;</div>
+          <h3>Board Generator</h3>
+          <p>Generate a printable ChArUco board with <code>--print-board board.png</code>. Matches your config &mdash; no camera or display needed.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -630,8 +654,10 @@
         <div class="key-item"><kbd>S</kbd> <span>Save results</span></div>
         <div class="key-item"><kbd>R</kbd> <span>Reset all data</span></div>
         <div class="key-item"><kbd>H</kbd> <span>Toggle heatmap</span></div>
-        <div class="key-item"><kbd>Y</kbd> / <kbd>N</kbd> <span>Accept / dismiss suggestion</span></div>
-        <div class="key-item"><kbd>Q</kbd> / <kbd>ESC</kbd> <span>Quit</span></div>
+        <div class="key-item"><kbd>U</kbd> <span>Toggle undistort preview</span></div>
+        <div class="key-item"><kbd>Z</kbd> <span>Undo last capture</span></div>
+        <div class="key-item"><kbd>Y</kbd> / <kbd>N</kbd> <span>Accept / dismiss prompt</span></div>
+        <div class="key-item"><kbd>Q</kbd> / <kbd>ESC</kbd> <span>Quit (save prompt)</span></div>
       </div>
     </div>
   </section>
@@ -670,7 +696,14 @@
           &nbsp;&nbsp;<span class="key">camera_id</span>: <span class="val">0</span><br>
           &nbsp;&nbsp;<span class="cmt"># image_folder: /path/to/frames</span><br>
           &nbsp;&nbsp;<span class="key">width</span>: <span class="val">0</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># 0 = native resolution</span><br>
-          &nbsp;&nbsp;<span class="key">height</span>: <span class="val">0</span>
+          &nbsp;&nbsp;<span class="key">height</span>: <span class="val">0</span><br>
+          <br>
+          <span class="key">auto_capture</span>: <span class="val">true</span><br>
+          <span class="key">show_heatmap</span>: <span class="val">true</span><br>
+          <span class="key">recalibrate_every</span>: <span class="val">5</span><br>
+          <span class="key">auto_prune</span>: <span class="val">true</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># auto-remove outlier frames</span><br>
+          <span class="key">prune_threshold</span>: <span class="val">2.0</span> &nbsp;&nbsp;&nbsp;<span class="cmt"># error &gt; N * mean</span><br>
+          <span class="key">gpu</span>: <span class="val">false</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># OpenCL acceleration</span>
         </div>
       </div>
     </div>

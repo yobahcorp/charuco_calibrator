@@ -105,7 +105,58 @@ Press **C** to run `cv2.calibrateCamera` on all accumulated observations. Result
 
 The system also auto-recalibrates every N accepted frames (default: 5) so the RMS updates as you collect more data.
 
+**Background calibration** — Calibration runs in a background thread so the UI never freezes. A pulsing "Calibrating..." indicator appears while computation is in progress, and an RMS flash message appears when it completes.
+
+**Auto-prune outliers** — After each calibration, frames with per-view reprojection error exceeding `prune_threshold` times the mean are automatically removed and the calibration re-runs. This iteratively improves quality without manual intervention. Controlled by `auto_prune` (default: true) and `prune_threshold` (default: 2.0).
+
 Minimum 4 frames are required to calibrate. 20–40 diverse frames are recommended for production use.
+
+### 8. Per-View Error Display
+
+After calibration, a bar chart overlay appears on the left side of the frame showing the reprojection error for each captured frame. Bars are color-coded relative to the mean error:
+- **Green** — below mean (good)
+- **Yellow** — near mean
+- **Red** — above mean (potential outlier)
+
+This helps identify which frames contribute most to calibration error.
+
+### 9. Undistortion Preview
+
+Press **U** to toggle a live undistortion preview after calibration. The frame is passed through `cv2.undistort()` using the current camera matrix and distortion coefficients. "Undistort: ON" appears in the status panel when active. This lets you visually verify that straight lines in the scene appear straight after calibration.
+
+### 10. Frame Undo
+
+Press **Z** to remove the last captured frame. A flash message shows the remaining frame count. Useful for quickly discarding a bad capture without resetting the entire session.
+
+### 11. Coverage Guidance Arrows
+
+A yellow arrow is drawn from the center of the frame toward the least-covered region of the coverage grid. The arrow direction is computed from the centroid of empty grid cells, guiding you to position the board where more data is needed.
+
+### 12. Board Generator
+
+Generate a printable ChArUco board image matching your config without starting the calibration UI:
+
+```bash
+charuco-calibrate --print-board board.png
+```
+
+The board uses the `board` settings from your config file (squares_x, squares_y, aruco_dict, etc.). Print it, mount on a flat surface, and you're ready to calibrate.
+
+### 13. FPS Counter
+
+A rolling 30-frame average FPS is displayed in the top-right of the status panel. Useful for monitoring performance, especially when GPU acceleration is enabled.
+
+### 14. Capture Visual Pulse
+
+A brief green border flash appears around the frame each time a frame is accepted (manual or auto-capture). This provides immediate visual confirmation that a capture occurred.
+
+### 15. Auto-Save on Quit
+
+When pressing **Q** or **ESC** with an unsaved calibration, a prompt appears: "Save before quitting? Y/N". This prevents accidentally losing calibration results.
+
+### 16. GPU Acceleration
+
+Set `gpu: true` in the config to enable OpenCL GPU acceleration. At startup, the system auto-detects OpenCL availability and logs the GPU device name. If no GPU is found, it falls back to CPU with a warning message. OpenCL accelerates compatible OpenCV operations transparently (resize, color conversion, blending).
 
 ### 8. Save & Export
 
@@ -189,7 +240,9 @@ See `charuco_calibrator_ros/README.md` for full setup instructions, the complete
 | `R` | Reset all data (observations, coverage, heatmap) |
 | `S` | Save calibration YAML + observations NPZ |
 | `H` | Toggle heatmap overlay |
-| `Q` / `ESC` | Quit |
+| `U` | Toggle undistortion preview (after calibration) |
+| `Z` | Undo last captured frame |
+| `Q` / `ESC` | Quit (prompts to save if unsaved calibration exists) |
 
 ---
 
@@ -214,6 +267,7 @@ See `config/default_config.yaml` for the full reference with all parameters docu
 | `--ros-topic <topic>` | ROS 2 image topic name |
 | `--output-dir <dir>` | Output directory for calibration files |
 | `--camera-name <name>` | Camera name written into the YAML |
+| `--print-board <output>` | Generate a printable ChArUco board image and exit |
 
 ### Config Sections
 
@@ -227,7 +281,7 @@ See `config/default_config.yaml` for the full reference with all parameters docu
 
 **output** — Export settings: `output_dir`, `camera_name`, `save_observations`
 
-**Top-level** — `auto_capture` (bool), `recalibrate_every` (int)
+**Top-level** — `auto_capture` (bool), `show_heatmap` (bool), `recalibrate_every` (int), `auto_prune` (bool), `prune_threshold` (float), `gpu` (bool)
 
 ---
 

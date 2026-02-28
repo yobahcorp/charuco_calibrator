@@ -50,17 +50,43 @@ CLI (main.py)  ─or─  ROS node (calibrator_node.py)
 - After calibration, RMS displayed live in status panel
 - Auto-recalibrates every N accepted frames (configurable)
 - Per-view error computation available
+- Per-view error bar chart overlay (color-coded green/yellow/red relative to mean)
 
 ### D) Frame scoring + accept/reject
 - **Frame score**: corner_ratio×0.3 + hull_spread×0.2 + new_coverage×0.3 + blur_norm×0.2
 - Rejection criteria: too few corners, too blurry (Laplacian variance), score below threshold
 - Manual capture (SPACE) and auto-capture with configurable cooldown
 
-### E) UX
+### E) Background calibration
+- Calibration runs in a background thread (`calibrate_async()`) — UI never freezes
+- Lock-protected observation snapshot to avoid contention with main thread
+- Pulsing "Calibrating..." indicator with animated dots during computation
+- RMS flash message on completion
+
+### F) Auto-prune & undo
+- Auto-prune outlier frames after calibration: removes frames with per-view error > threshold * mean, re-calibrates iteratively
+- Config: `auto_prune: true`, `prune_threshold: 2.0`
+- Frame undo (Z key): removes last captured observation
+- Undistortion preview (U key): live `cv2.undistort()` toggle after calibration
+- Auto-save prompt on quit: "Save before quitting? Y/N" when unsaved calibration exists
+
+### G) GPU acceleration
+- `gpu: false` config option — enables OpenCL transparent acceleration
+- Auto-detects OpenCL at startup via `cv2.ocl.haveOpenCL()`, logs device name
+- Graceful CPU fallback when GPU not available
+
+### H) Board generator
+- `--print-board <output.png>` generates a printable ChArUco board image matching config and exits
+- No camera or display required
+
+### I) UX
 - Live overlay: detected markers/corners, score breakdown, coverage %, frame count, RMS
-- "ACCEPTED" flash on capture
-- Status panel, coverage grid, quality meter bar, help hints
-- **Keyboard**: SPACE=capture, A=auto, C=calibrate, R=reset, S=save, H=heatmap, Q=quit
+- "ACCEPTED" flash on capture with green border pulse
+- FPS counter (rolling 30-frame average) in status panel top-right
+- Coverage guidance arrow pointing toward least-covered grid region
+- Per-view error bar chart after calibration
+- Status panel, coverage grid, quality meter bar, dark help hint bar
+- **Keyboard**: SPACE=capture, A=auto, C=calibrate, R=reset, S=save, H=heatmap, U=undistort, Z=undo, Q=quit
 
 ## File Layout
 ```
@@ -71,9 +97,9 @@ charuco_calibrator/
   detector.py          # CharucoBoard + CharucoDetector wrapper (OO + legacy fallback)
   scoring.py           # Frame scoring, blur, CoverageState, quality meter
   heatmap.py           # Gaussian splat accumulator + alpha-blend render
-  calibration.py       # cv2.calibrateCamera wrapper, YAML export (ROS-compatible)
-  ui.py                # Overlay drawing, coverage grid, quality bar, keyboard dispatch
-  main.py              # run(cfg) calibration loop + CLI entry point
+  calibration.py       # cv2.calibrateCamera wrapper, async calibration, prune, YAML export
+  ui.py                # Overlay drawing, coverage grid, quality bar, per-view errors, guidance arrow, keyboard dispatch
+  main.py              # run(cfg) calibration loop + CLI entry point + board generator
 config/
   default_config.yaml  # Full reference config with all parameters documented
 tests/
@@ -111,6 +137,7 @@ All parameters live in a YAML config file (`config/default_config.yaml`) with CL
 - `--ros-topic <topic>` — ROS 2 image topic
 - `--output-dir <dir>` — calibration output directory
 - `--camera-name <name>` — camera name for YAML
+- `--print-board <output>` — generate printable board image and exit
 
 ## Usage
 

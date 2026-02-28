@@ -40,6 +40,9 @@ charuco-calibrate --camera 0
 
 # Or from a folder of images
 charuco-calibrate --image-folder /path/to/frames/
+
+# Generate a printable board image (no camera needed)
+charuco-calibrate --print-board board.png
 ```
 
 ## 6. Run tests
