@@ -179,12 +179,21 @@ class CalibrationManager:
         return np.array(errors)
 
     def compute_per_view_errors_full(self) -> np.ndarray:
-        """Compute per-view RMS using stored observations and result."""
+        """Compute per-view RMS using stored observations and result.
+
+        Only computes errors for observations that have corresponding
+        rvecs/tvecs in the result (observations added after calibration
+        are excluded).
+        """
         if self.result is None or not self.result.valid:
             return np.array([])
+        if self.result.rvecs is None or self.result.tvecs is None:
+            return np.array([])
 
+        n = min(len(self.observations), len(self.result.rvecs))
         errors = []
-        for i, obs in enumerate(self.observations):
+        for i in range(n):
+            obs = self.observations[i]
             projected, _ = cv2.projectPoints(
                 obs.object_points,
                 self.result.rvecs[i],
