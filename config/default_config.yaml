@@ -37,4 +37,5 @@ show_heatmap: true      # Start with heatmap overlay enabled
 recalibrate_every: 5    # Re-run calibration every N accepted frames
 auto_prune: true        # Auto-remove outlier frames after calibration
 prune_threshold: 2.0    # Prune frames with error > N * mean RMS
+gpu: false              # Enable OpenCL/CUDA GPU acceleration
 

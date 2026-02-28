@@ -71,12 +71,37 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _init_gpu(enabled: bool) -> bool:
+    """Initialize GPU acceleration if requested and available.
+
+    Returns True if OpenCL was successfully enabled.
+    """
+    if not enabled:
+        return False
+
+    if cv2.ocl.haveOpenCL():
+        cv2.ocl.setUseOpenCL(True)
+        try:
+            device = cv2.ocl.Device.getDefault()
+            name = device.name() if device else "unknown"
+        except Exception:
+            name = "unknown"
+        print(f"GPU: OpenCL enabled — {name}")
+        return True
+
+    print("GPU: OpenCL not available, falling back to CPU")
+    return False
+
+
 def run(cfg: AppConfig) -> int:
     """Run the calibration loop with the given config.
 
     This can be called directly with a programmatically-built AppConfig
     (e.g. from a ROS node) without going through CLI arg parsing.
     """
+    # GPU initialization
+    gpu_enabled = _init_gpu(cfg.gpu)
+
     # Initialize components
     detector = CharucoDetectorWrapper(cfg.board)
     coverage = CoverageState(
@@ -357,7 +382,11 @@ def run(cfg: AppConfig) -> int:
                 show_undistort=show_undistort,
             )
             vis = ui.draw_prompt(vis)
+            if cal_manager.result and cal_manager.result.valid:
+                per_view = cal_manager.compute_per_view_errors_full()
+                vis = ui.draw_per_view_errors(vis, per_view)
             vis = ui.draw_coverage_grid(vis, coverage)
+            vis = ui.draw_guidance_arrow(vis, coverage)
             vis = ui.draw_quality_meter(vis, coverage.quality_meter)
             vis = ui.draw_accepted_flash(vis, now)
             vis = ui.draw_border_flash(vis, now)

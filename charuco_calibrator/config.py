@@ -116,6 +116,7 @@ class AppConfig:
     recalibrate_every: int = 5
     auto_prune: bool = True
     prune_threshold: float = 2.0
+    gpu: bool = False
 
 
 # ---------------------------------------------------------------------------

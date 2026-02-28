@@ -215,6 +215,48 @@ class UIRenderer:
         )
         return vis
 
+    def draw_guidance_arrow(
+        self,
+        frame: np.ndarray,
+        coverage: CoverageState,
+    ) -> np.ndarray:
+        """Draw an arrow pointing toward the region with least coverage."""
+        # Find empty cells; if none, skip
+        empty = np.argwhere(coverage.grid == 0)
+        if len(empty) == 0:
+            return frame
+
+        vis = frame.copy()
+        fh, fw = vis.shape[:2]
+        s = self._scale(frame)
+
+        # Compute centroid of empty cells in normalized coords
+        mean_row = float(np.mean(empty[:, 0]) + 0.5) / coverage.grid_rows
+        mean_col = float(np.mean(empty[:, 1]) + 0.5) / coverage.grid_cols
+
+        # Target point in frame coords
+        tx = int(mean_col * fw)
+        ty = int(mean_row * fh)
+
+        # Arrow from frame center toward the target
+        cx, cy = fw // 2, fh // 2
+        dx, dy = tx - cx, ty - cy
+        dist = max(np.sqrt(dx * dx + dy * dy), 1.0)
+
+        # Arrow length proportional to frame, start from center
+        arrow_len = int(60 * s)
+        end_x = cx + int(dx / dist * arrow_len)
+        end_y = cy + int(dy / dist * arrow_len)
+
+        thick = max(2, int(3 * s))
+        tip_len = int(15 * s)
+        cv2.arrowedLine(
+            vis, (cx, cy), (end_x, end_y),
+            self.YELLOW, thick, tipLength=tip_len / max(arrow_len, 1),
+        )
+
+        return vis
+
     def draw_quality_meter(
         self,
         frame: np.ndarray,
@@ -283,6 +325,70 @@ class UIRenderer:
         """Trigger a flash message."""
         self._flash_text = text
         self._flash_until = current_time + duration
+
+    def draw_per_view_errors(
+        self,
+        frame: np.ndarray,
+        errors: np.ndarray,
+    ) -> np.ndarray:
+        """Draw a small per-view error bar chart on the left side."""
+        if len(errors) == 0:
+            return frame
+        vis = frame.copy()
+        fh, fw = vis.shape[:2]
+        s = self._scale(frame)
+        thick = max(1, round(s))
+        pad = int(10 * s)
+
+        max_bars = min(len(errors), 20)
+        bar_h = int(8 * s)
+        gap = int(2 * s)
+        max_bar_w = int(100 * s)
+        chart_h = max_bars * (bar_h + gap)
+
+        # Position: left side, below status panel
+        ox = pad
+        oy = int(100 * s)
+
+        # Background
+        overlay = vis.copy()
+        cv2.rectangle(
+            overlay,
+            (ox - 2, oy - int(16 * s)),
+            (ox + max_bar_w + int(40 * s), oy + chart_h + 2),
+            self.BLACK, -1,
+        )
+        cv2.addWeighted(overlay, 0.5, vis, 0.5, 0, vis)
+
+        # Label
+        cv2.putText(
+            vis, "Per-view error",
+            (ox, oy - int(4 * s)), self.FONT, 0.35 * s, self.WHITE, thick,
+        )
+
+        max_err = float(np.max(errors)) if len(errors) > 0 else 1.0
+        mean_err = float(np.mean(errors))
+
+        for i in range(max_bars):
+            err = float(errors[i])
+            bar_w = int((err / max(max_err, 1e-6)) * max_bar_w)
+            y0 = oy + i * (bar_h + gap)
+
+            if err > 2.0 * mean_err:
+                color = self.RED
+            elif err > 1.5 * mean_err:
+                color = self.YELLOW
+            else:
+                color = self.GREEN
+
+            cv2.rectangle(vis, (ox, y0), (ox + bar_w, y0 + bar_h), color, -1)
+            cv2.putText(
+                vis, f"{err:.2f}",
+                (ox + max_bar_w + int(4 * s), y0 + bar_h),
+                self.FONT, 0.28 * s, self.WHITE, thick,
+            )
+
+        return vis
 
     def trigger_border_flash(self, current_time: float, duration: float = 0.2) -> None:
         """Trigger a green border flash on frame capture."""

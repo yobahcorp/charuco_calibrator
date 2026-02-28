@@ -49,6 +49,12 @@
   - Updated help hints: added U:undistort and Z:undo
   - Removed completed features from BACKLOG.md, updated priority order
 
+- Implemented backlog Features 2A+2C, 9, 11 (third batch)
+  - **Feature 2A+2C**: GPU acceleration — `gpu: false` config option, OpenCL auto-detection at startup via `_init_gpu()`, `cv2.ocl.setUseOpenCL(True)`, device name logging, graceful CPU fallback
+  - **Feature 9**: Per-view error display — bar chart overlay on left side showing per-frame reprojection errors, color-coded (green/yellow/red) relative to mean
+  - **Feature 11**: Coverage guidance arrows — yellow arrow from frame center toward least-covered grid region, computed from centroid of empty cells
+  - Removed completed features from BACKLOG.md (3 items remaining: board generator, stereo, CUDA)
+
 ### Decisions
 
 - Image folder frames sorted alphabetically (standard `sorted()`)
