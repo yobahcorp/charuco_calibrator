@@ -157,6 +157,35 @@ ros2 run charuco_calibrator_ros charuco_calibrator_node --ros-args \
 
 See `charuco_calibrator_ros/README.md` for full ROS 2 setup and usage instructions.
 
+## Session & Backlog Rules
+
+### Session Log (`SESSION.md`)
+- Every working session must be logged in `SESSION.md` at the project root
+- Each entry is dated (`## YYYY-MM-DD`) and contains:
+  - **Changes** — what was added, modified, or removed, with commit hashes
+  - **Decisions** — key design choices made and their rationale
+- Entries are appended chronologically (newest at the bottom)
+- Keep entries concise: bullet points, not paragraphs
+- Log the session before the final commit/push
+
+### Backlog (`BACKLOG.md`)
+- All planned features and improvements live in `BACKLOG.md` at the project root
+- Each feature gets its own `## Feature N: Title` section with:
+  - **Files** — which source files will be modified
+  - A brief description of what to implement
+- A **Priority Order** section at the bottom ranks all items
+- When a backlog item is completed:
+  - Remove it from `BACKLOG.md`
+  - Log it in `SESSION.md` under the current date
+  - Update any affected documentation (README, FEATURES, CLAUDE_SPEC)
+- New ideas or requested features are added to the backlog before implementation
+- Do not implement backlog items without explicit user request
+- **When to update the backlog during execution:**
+  - **Before implementation** — add the feature to the backlog first
+  - **During implementation** — if scope changes, new sub-tasks emerge, or blockers are discovered, update the feature's description and plan
+  - **After implementation** — remove the completed item, log it in `SESSION.md`
+  - **When priorities shift** — if a completed feature unblocks or changes the priority of other items, reorder the Priority Order section
+
 ## Key Design Decisions
 - **OpenCV 4.8+ OO API**: `CharucoDetector.detectBoard()` with automatic legacy fallback
 - **Calibration**: `cv2.calibrateCamera` (not deprecated `calibrateCameraCharuco`)
