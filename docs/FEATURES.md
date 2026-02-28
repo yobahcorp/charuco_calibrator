@@ -4,7 +4,7 @@
 
 ChArUco Calibrator is a standalone Python camera calibration tool that uses ChArUco boards to compute intrinsic camera parameters. It provides real-time visual feedback, coverage tracking, corner heatmaps, and auto-capture to guide you toward a high-quality calibration with minimal effort.
 
-Works out of the box with any USB webcam or video file via OpenCV. Optionally subscribes to a ROS 2 image topic for integration with robotic systems.
+Works out of the box with any USB webcam, video file, or folder of images via OpenCV. Optionally subscribes to a ROS 2 image topic for integration with robotic systems.
 
 ---
 
@@ -16,6 +16,9 @@ charuco-calibrate --camera 0
 
 # Video file
 charuco-calibrate --video recording.mp4
+
+# Folder of images (sorted alphabetically)
+charuco-calibrate --image-folder /path/to/frames/
 
 # ROS 2 topic (requires rclpy + cv_bridge)
 charuco-calibrate --ros-topic /camera/image_raw
@@ -207,6 +210,7 @@ See `config/default_config.yaml` for the full reference with all parameters docu
 | `--config <path>` | Path to YAML config file |
 | `--camera <id>` | Camera device ID (integer) |
 | `--video <path>` | Path to a video file |
+| `--image-folder <path>` | Path to a folder of images |
 | `--ros-topic <topic>` | ROS 2 image topic name |
 | `--output-dir <dir>` | Output directory for calibration files |
 | `--camera-name <name>` | Camera name written into the YAML |
@@ -219,7 +223,7 @@ See `config/default_config.yaml` for the full reference with all parameters docu
 
 **coverage** — Grid dimensions: `grid_cols`, `grid_rows`, `scale_bins`
 
-**source** — Image source: `camera_id`, `video_path`, `ros_topic`, `width`, `height`
+**source** — Image source: `camera_id`, `video_path`, `image_folder`, `ros_topic`, `width`, `height`
 
 **output** — Export settings: `output_dir`, `camera_name`, `save_observations`
 

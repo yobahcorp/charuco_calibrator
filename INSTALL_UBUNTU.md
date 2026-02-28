@@ -35,7 +35,11 @@ pip install -e ".[dev]"
 ## 5. Run
 
 ```bash
+# Webcam
 charuco-calibrate --camera 0
+
+# Or from a folder of images
+charuco-calibrate --image-folder /path/to/frames/
 ```
 
 ## 6. Run tests

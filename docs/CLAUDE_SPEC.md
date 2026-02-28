@@ -15,7 +15,7 @@ CLI (main.py)  ─or─  ROS node (calibrator_node.py)
        │                        │
        └──────► run(cfg) ◄──────┘
                    │
-     Config → ImageSource (camera / video / ROS topic)
+     Config → ImageSource (camera / video / image folder / ROS topic)
                    ↓ frame
      Detector → Scoring → Accept? → Heatmap + CalibrationManager
                    └─→ UI (overlay + keyboard) → cv2.imshow
@@ -28,7 +28,7 @@ CLI (main.py)  ─or─  ROS node (calibrator_node.py)
   configuration from ROS parameters and feeds images exclusively via a ROS topic
 
 ## Core Features
-1. **Image acquisition**: OpenCV VideoCapture (webcam/video file) or ROS 2 image topic (lazy import)
+1. **Image acquisition**: OpenCV VideoCapture (webcam/video file), image folder, or ROS 2 image topic (lazy import)
 2. **ChArUco detection**: OpenCV 4.8+ `CharucoDetector.detectBoard()` with legacy API fallback
 3. **Observation accumulation**: store matched object/image point pairs per accepted frame
 4. **Calibration**: `cv2.calibrateCamera` with `board.matchImagePoints()` for correspondences
@@ -67,7 +67,7 @@ CLI (main.py)  ─or─  ROS node (calibrator_node.py)
 charuco_calibrator/
   __init__.py          # Version string
   config.py            # Dataclasses + YAML loading + CLI override
-  image_source.py      # Abstract ImageSource, CameraSource, RosImageSource (lazy rclpy)
+  image_source.py      # Abstract ImageSource, CameraSource, ImageFolderSource, RosImageSource (lazy rclpy)
   detector.py          # CharucoBoard + CharucoDetector wrapper (OO + legacy fallback)
   scoring.py           # Frame scoring, blur, CoverageState, quality meter
   heatmap.py           # Gaussian splat accumulator + alpha-blend render
@@ -107,6 +107,7 @@ All parameters live in a YAML config file (`config/default_config.yaml`) with CL
 - `--config <path>` — custom config file
 - `--camera <id>` — camera device ID
 - `--video <path>` — video file
+- `--image-folder <path>` — folder of images (sorted alphabetically)
 - `--ros-topic <topic>` — ROS 2 image topic
 - `--output-dir <dir>` — calibration output directory
 - `--camera-name <name>` — camera name for YAML
@@ -122,6 +123,11 @@ charuco-calibrate --camera 0
 ### Standalone (video file)
 ```bash
 charuco-calibrate --video recording.mp4
+```
+
+### Standalone (image folder)
+```bash
+charuco-calibrate --image-folder /path/to/frames/
 ```
 
 ### With ROS 2 — standalone CLI (requires rclpy + cv_bridge)

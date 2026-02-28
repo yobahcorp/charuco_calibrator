@@ -2,7 +2,7 @@
 
 Interactive camera calibration tool using ChArUco boards. Provides real-time detection feedback, frame scoring, coverage tracking, corner heatmaps, and auto-capture — so you can get a high-quality calibration with minimal effort.
 
-Works with any USB webcam or video file via OpenCV. Optionally subscribes to a ROS 2 image topic for robotic workflows.
+Works with any USB webcam, video file, or folder of images via OpenCV. Optionally subscribes to a ROS 2 image topic for robotic workflows.
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![OpenCV](https://img.shields.io/badge/OpenCV-4.8%2B-green)
@@ -41,6 +41,9 @@ charuco-calibrate --camera 0
 # Video file
 charuco-calibrate --video recording.mp4
 
+# Folder of images (sorted alphabetically)
+charuco-calibrate --image-folder /path/to/frames/
+
 # ROS 2 topic (requires rclpy + cv_bridge)
 charuco-calibrate --ros-topic /camera/image_raw
 ```
@@ -72,6 +75,7 @@ charuco-calibrate --config my_config.yaml --camera 0 --output-dir results/
 | `--config <path>` | Path to YAML config file |
 | `--camera <id>` | Camera device ID (integer) |
 | `--video <path>` | Path to a video file |
+| `--image-folder <path>` | Path to a folder of images |
 | `--ros-topic <topic>` | ROS 2 image topic name |
 | `--output-dir <dir>` | Output directory for calibration files |
 | `--camera-name <name>` | Camera name written into the YAML |
@@ -85,7 +89,7 @@ See [`config/default_config.yaml`](config/default_config.yaml) for the full refe
 | **board** | `squares_x`, `squares_y`, `square_length`, `marker_length`, `aruco_dict` |
 | **thresholds** | `min_corners`, `min_blur_var`, `min_score`, `capture_cooldown_ms` |
 | **coverage** | `grid_cols`, `grid_rows`, `scale_bins` |
-| **source** | `camera_id`, `video_path`, `ros_topic`, `width`, `height` |
+| **source** | `camera_id`, `video_path`, `image_folder`, `ros_topic`, `width`, `height` |
 | **output** | `output_dir`, `camera_name`, `save_observations` |
 
 ## Board Setup
@@ -163,7 +167,7 @@ After calibrating (`C`) and saving (`S`), two files are written to `output_dir` 
 ```
 charuco_calibrator/
   config.py          # Dataclasses + YAML loading
-  image_source.py    # Camera, video, and ROS 2 image sources
+  image_source.py    # Camera, video, image folder, and ROS 2 image sources
   detector.py        # ChArUco detection (OpenCV 4.8+ OO API with legacy fallback)
   scoring.py         # Frame scoring and coverage tracking
   heatmap.py         # Gaussian-splat corner heatmap
