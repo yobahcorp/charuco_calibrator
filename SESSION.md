@@ -59,6 +59,21 @@
   - `--print-board <output.png>` generates a printable ChArUco board image matching config and exits
   - Removed from BACKLOG.md (2 items remaining: stereo, CUDA)
 
+- Updated all documentation for new features
+  - FEATURES.md: added sections 8–16 (per-view errors, undistort, undo, guidance arrows, board generator, FPS, capture pulse, auto-save, GPU), updated keyboard controls, CLI flags, config sections
+  - CLAUDE_SPEC.md: added sections E–H (background calibration, auto-prune/undo, GPU, board generator), updated UX section, file descriptions, CLI flags
+  - INSTALL_UBUNTU.md: added `--print-board` example
+  - docs/index.html: added 4 feature cards, U/Z keyboard shortcuts, new config options in display block
+  - Commit: `6c1556e`
+
+- Fixed IndexError in `compute_per_view_errors_full()` when observations grow after async calibration
+  - `rvecs`/`tvecs` correspond to the snapshot at calibration time; new observations added after caused out-of-range access
+  - Fix: iterate up to `min(len(observations), len(rvecs))` instead of all observations
+  - Tested on `combined_cal_rosbag` (690 images) — runs successfully
+  - Commit: `269bff2`
+
+- Rebuilt package v0.1.0 (sdist + wheel in `dist/`)
+
 ### Decisions
 
 - Image folder frames sorted alphabetically (standard `sorted()`)
@@ -67,3 +82,4 @@
 - GPU acceleration planned via UMat first (transparent), CUDA optional
 - Background calibration uses snapshot of observations (copied under lock) to avoid contention with main thread
 - Calibration completion detected via `_cal_flash_shown` flag to show RMS flash once
+- Per-view error computation bounds-checked against result rvecs length, not observations length
