@@ -10,6 +10,7 @@ Works with any USB webcam, video file, or folder of images via OpenCV. Optionall
 
 ## Features
 
+- **Web UI** — browser-based interface with real-time video stream, coverage grid, quality meter, error bars, and score breakdown
 - **Live ChArUco detection** with corner and marker overlay
 - **Frame scoring** based on corner count, hull spread, new coverage, and sharpness
 - **Coverage tracking** — grid, quadrant, scale, and view diversity
@@ -27,7 +28,7 @@ Works with any USB webcam, video file, or folder of images via OpenCV. Optionall
 ```bash
 git clone https://github.com/yobahcorp/charuco_calibrator.git
 cd charuco_calibrator
-pip install -e .
+pip install -e ".[web]"
 ```
 
 For Ubuntu system dependencies, see [INSTALL_UBUNTU.md](INSTALL_UBUNTU.md).
@@ -35,7 +36,7 @@ For Ubuntu system dependencies, see [INSTALL_UBUNTU.md](INSTALL_UBUNTU.md).
 ### Run
 
 ```bash
-# Webcam
+# Webcam (opens web UI at http://localhost:8080)
 charuco-calibrate --camera 0
 
 # Video file
@@ -46,6 +47,12 @@ charuco-calibrate --image-folder /path/to/frames/
 
 # ROS 2 topic (requires rclpy + cv_bridge)
 charuco-calibrate --ros-topic /camera/image_raw
+
+# OpenCV window fallback (no browser)
+charuco-calibrate --no-web --camera 0
+
+# Custom port
+charuco-calibrate --port 9090 --camera 0
 ```
 
 ## Keyboard Controls
@@ -58,7 +65,11 @@ charuco-calibrate --ros-topic /camera/image_raw
 | `S` | Save calibration YAML + observations |
 | `R` | Reset all data |
 | `H` | Toggle heatmap overlay |
+| `U` | Toggle undistortion preview |
+| `Z` | Undo last captured frame |
 | `Q` / `ESC` | Quit |
+
+All keyboard shortcuts work in both the web UI and the OpenCV window.
 
 ## Configuration
 
@@ -79,6 +90,12 @@ charuco-calibrate --config my_config.yaml --camera 0 --output-dir results/
 | `--ros-topic <topic>` | ROS 2 image topic name |
 | `--output-dir <dir>` | Output directory for calibration files |
 | `--camera-name <name>` | Camera name written into the YAML |
+| `--web` / `--no-web` | Launch web UI (default) or fall back to OpenCV window |
+| `--port <port>` | Web UI server port (default: 8080) |
+| `--host <host>` | Web UI server host (default: 0.0.0.0) |
+| `--print-board <output>` | Generate a printable ChArUco board image and exit |
+| `--visualize` | Enter distortion visualization mode (requires `--calibration`) |
+| `--calibration <path>` | Path to calibration YAML file (used with `--visualize`) |
 
 ### Config File
 
@@ -172,8 +189,14 @@ charuco_calibrator/
   scoring.py         # Frame scoring and coverage tracking
   heatmap.py         # Gaussian-splat corner heatmap
   calibration.py     # cv2.calibrateCamera wrapper + YAML export
-  ui.py              # Overlay rendering + keyboard dispatch
+  ui.py              # OpenCV overlay rendering + keyboard dispatch
+  web_server.py      # FastAPI backend + WebSocket streaming
+  visualize.py       # Distortion heatmap visualization mode
   main.py            # run(cfg) loop + CLI entry point
+  static/
+    index.html       # Web UI single-page application
+    app.js           # WebSocket client + DOM updates
+    style.css        # Dark theme styling
 config/
   default_config.yaml
 tests/

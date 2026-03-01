@@ -18,6 +18,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+web = [
+    "fastapi>=0.104",
+    "uvicorn[standard]>=0.24",
+    "websockets>=12.0",
+]
 dev = [
     "pytest>=7.0",
     "black>=24.0",
@@ -31,6 +36,9 @@ charuco-calibrate = "charuco_calibrator.main:cli"
 
 [tool.setuptools.packages.find]
 include = ["charuco_calibrator*"]
+
+[tool.setuptools.package-data]
+charuco_calibrator = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

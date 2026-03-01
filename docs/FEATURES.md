@@ -176,6 +176,36 @@ A distortion magnitude heatmap is computed from the calibration parameters and b
 
 The status bar shows RMS, calibration resolution, and display resolution.
 
+### 18. Web UI
+
+The calibrator ships with a browser-based web UI powered by FastAPI and WebSocket streaming. The web UI is the default — just run `charuco-calibrate` and open `http://localhost:8080` in your browser.
+
+**Layout:**
+- **Top bar** — frame count, auto-capture status, RMS, FPS, ArUco dictionary, calibrating indicator
+- **Video panel** — live camera feed with detection overlay and heatmap (no text overlays on the video)
+- **Side panel** — coverage grid (Canvas), quality meter, frame score breakdown, per-view error bar chart
+- **Bottom controls** — buttons for capture, auto, calibrate, reset, save, heatmap, undistort, undo
+- **Keyboard shortcuts** — all the same shortcuts work in the browser (Space, A, C, R, S, H, U, Z, Q)
+
+**Architecture:**
+- FastAPI backend with 3 WebSocket channels: `/ws/video` (JPEG frames), `/ws/state` (JSON metrics), `/ws/action` (commands)
+- Calibration loop runs in a background thread — the browser is a thin display + control client
+- Auto-reconnect on connection loss
+
+**Usage:**
+```bash
+# Web UI (default)
+charuco-calibrate --camera 0
+
+# Custom port
+charuco-calibrate --port 9090 --camera 0
+
+# OpenCV fallback
+charuco-calibrate --no-web --camera 0
+```
+
+**Install:** `pip install -e ".[web]"` (adds fastapi, uvicorn, websockets). If web dependencies are missing, the tool falls back to the OpenCV window automatically.
+
 ### 8. Save & Export
 
 Press **S** to save calibration results:
@@ -288,6 +318,9 @@ See `config/default_config.yaml` for the full reference with all parameters docu
 | `--print-board <output>` | Generate a printable ChArUco board image and exit |
 | `--visualize` | Enter distortion visualization mode (requires `--calibration`) |
 | `--calibration <path>` | Path to calibration YAML file (used with `--visualize`) |
+| `--web` / `--no-web` | Launch web UI (default) or fall back to OpenCV window |
+| `--port <port>` | Web UI server port (default: 8080) |
+| `--host <host>` | Web UI server host (default: 0.0.0.0) |
 
 ### Config Sections
 

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChArUco Calibrator</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top bar -->
+    <header id="top-bar">
+      <span id="stat-frames">Frames: 0</span>
+      <span id="stat-auto">Auto: OFF</span>
+      <span id="stat-rms">RMS: --</span>
+      <span id="stat-fps">FPS: 0.0</span>
+      <span id="stat-dict">--</span>
+      <span id="stat-calibrating" class="hidden">Calibrating...</span>
+    </header>
+
+    <!-- Main content -->
+    <main id="content">
+      <section id="video-panel">
+        <img id="video-stream" alt="Camera feed">
+        <div id="flash-overlay" class="hidden"></div>
+      </section>
+
+      <aside id="side-panel">
+        <!-- Coverage Grid -->
+        <div class="panel-section">
+          <h3>Coverage <span id="coverage-pct">0%</span></h3>
+          <canvas id="coverage-grid" width="200" height="200"></canvas>
+        </div>
+
+        <!-- Quality Meter -->
+        <div class="panel-section">
+          <h3>Quality <span id="quality-pct">0%</span></h3>
+          <div id="quality-bar"><div id="quality-fill"></div></div>
+        </div>
+
+        <!-- Score Breakdown -->
+        <div class="panel-section">
+          <h3>Frame Score</h3>
+          <table id="score-table">
+            <tr><td>Corners</td><td id="score-corners">--</td></tr>
+            <tr><td>Hull spread</td><td id="score-hull">--</td></tr>
+            <tr><td>New coverage</td><td id="score-newcov">--</td></tr>
+            <tr><td>Blur</td><td id="score-blur">--</td></tr>
+            <tr class="total-row"><td>Total</td><td id="score-total">--</td></tr>
+          </table>
+          <div id="score-rejected" class="hidden"></div>
+        </div>
+
+        <!-- Per-View Errors -->
+        <div class="panel-section">
+          <h3>Per-View Errors</h3>
+          <canvas id="error-bars" width="240" height="200"></canvas>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Bottom controls -->
+    <footer id="controls">
+      <div id="button-row">
+        <button data-action="capture" title="Space">Capture</button>
+        <button data-action="toggle_auto" title="A" id="btn-auto">Auto</button>
+        <button data-action="calibrate" title="C">Calibrate</button>
+        <button data-action="reset" title="R">Reset</button>
+        <button data-action="save" title="S">Save</button>
+        <button data-action="toggle_heatmap" title="H" id="btn-heatmap">Heatmap</button>
+        <button data-action="undistort" title="U" id="btn-undistort">Undistort</button>
+        <button data-action="undo" title="Z">Undo</button>
+      </div>
+      <div id="shortcut-hint">
+        Space:capture  A:auto  C:calibrate  R:reset  S:save  H:heatmap  U:undistort  Z:undo
+      </div>
+    </footer>
+
+    <!-- Prompt overlay -->
+    <div id="prompt-overlay" class="hidden">
+      <div id="prompt-box">
+        <p id="prompt-text"></p>
+        <div id="prompt-buttons">
+          <button data-action="confirm">Yes (Y)</button>
+          <button data-action="deny">No (N)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

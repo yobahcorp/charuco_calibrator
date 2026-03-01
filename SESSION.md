@@ -99,6 +99,46 @@
   - Tested on `combined_cal_rosbag` (690 images) — works correctly
   - Commit: `d8d2a04`
 
+## 2026-03-01
+
+### Changes
+
+- Implemented Feature 14: Web UI (branch: `feature/web-ui`)
+  - New `charuco_calibrator/web_server.py` — FastAPI backend with 3 WebSocket endpoints:
+    - `/ws/video` (binary): JPEG-encoded frames at ~30fps with detection overlay + heatmap
+    - `/ws/state` (text): JSON state updates at ~10Hz (metrics, scores, coverage, errors, flash, prompt)
+    - `/ws/action` (text): action commands from browser (capture, calibrate, save, etc.)
+  - Calibration loop runs in a background thread (blocking OpenCV ops), writes to shared `WebState`
+  - Async broadcast tasks push frames and state to all connected WebSocket clients
+  - New `charuco_calibrator/static/index.html` — single-page app with:
+    - Top bar: frames, auto, RMS, FPS, dictionary, calibrating indicator
+    - Main area: video stream panel + side panel (coverage grid, quality meter, score table, error bars)
+    - Bottom: action buttons with keyboard shortcut hints
+    - Prompt overlay for Y/N confirmations
+  - New `charuco_calibrator/static/app.js` — WebSocket client with auto-reconnect, blob URL video rendering, Canvas 2D coverage grid + error bar charts, keyboard shortcuts, button event delegation
+  - New `charuco_calibrator/static/style.css` — dark theme, flexbox layout, CSS pulse animation
+  - Modified `charuco_calibrator/main.py`:
+    - Added `--web`/`--no-web` (default: web), `--port` (default: 8080), `--host` (default: 0.0.0.0) CLI args
+    - Web dispatch with conditional import — graceful fallback to OpenCV UI when fastapi/uvicorn not installed
+  - Modified `pyproject.toml`:
+    - Added `[project.optional-dependencies] web` (fastapi, uvicorn, websockets)
+    - Added `[tool.setuptools.package-data]` for static files
+  - Existing `run()` function and OpenCV UI completely untouched — available via `--no-web`
+  - All 73 existing tests still pass
+  - Removed Feature 14 from BACKLOG.md (completed), updated priority order
+  - Updated README.md, FEATURES.md, CLAUDE_SPEC.md, docs/index.html, SESSION.md
+
+### Decisions
+
+- Calibration loop in background thread (not async) because OpenCV operations are blocking
+- 3 separate WebSocket channels for clean separation of binary frames vs JSON state vs action commands
+- No text overlays on video frame — all metrics rendered as HTML for crisp, readable text
+- Detection overlay and heatmap remain on the video frame for visual feedback
+- Web dependencies as optional (`pip install charuco-calibrator[web]`) — conditional import for graceful fallback
+- `--web` is the default; `--no-web` falls back to OpenCV window
+
+---
+
 ### Decisions
 
 - Image folder frames sorted alphabetically (standard `sorted()`)

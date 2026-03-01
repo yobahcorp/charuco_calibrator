@@ -89,6 +89,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         metavar="YAML_PATH",
         help="Path to calibration YAML file (used with --visualize)",
     )
+    parser.add_argument(
+        "--web",
+        action="store_true",
+        default=True,
+        dest="web",
+        help="Launch web UI (default)",
+    )
+    parser.add_argument(
+        "--no-web",
+        action="store_false",
+        dest="web",
+        help="Fall back to OpenCV window UI",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Web UI server port (default: 8080)",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Web UI server host (default: 0.0.0.0)",
+    )
     return parser.parse_args(argv)
 
 
@@ -466,6 +491,23 @@ def main(argv: list[str] | None = None) -> int:
             print("ERROR: --visualize requires --calibration <path>", file=sys.stderr)
             return 1
         return run_visualize(cfg, cal_path)
+
+    # Web UI mode (default)
+    if getattr(args, "web", True):
+        try:
+            from .web_server import start_web_server
+
+            host = getattr(args, "host", "0.0.0.0")
+            port = getattr(args, "port", 8080)
+            print(f"Starting web UI at http://{host}:{port}")
+            return start_web_server(cfg, host=host, port=port)
+        except ImportError:
+            print(
+                "WARNING: fastapi/uvicorn not installed. "
+                "Falling back to OpenCV UI. "
+                "Install with: pip install charuco-calibrator[web]",
+                file=sys.stderr,
+            )
 
     return run(cfg)
 

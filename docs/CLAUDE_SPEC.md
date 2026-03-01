@@ -86,6 +86,21 @@ CLI (main.py)  ─or─  ROS node (calibrator_node.py)
 - Standalone event loop — no scoring, capture, or coverage logic
 - Works with any source (camera, video, image folder)
 
+### K) Web UI
+- Browser-based interface powered by FastAPI + WebSocket streaming
+- Default mode (`--web`), OpenCV fallback via `--no-web`
+- 3 WebSocket channels: `/ws/video` (binary JPEG frames), `/ws/state` (JSON metrics), `/ws/action` (commands)
+- Calibration loop in background thread — browser is a thin display + control client
+- Single-page HTML/JS/CSS frontend with dark theme:
+  - Top bar: frames, auto, RMS, FPS, dictionary, calibrating indicator
+  - Video panel: detection overlay + heatmap only (no text overlays)
+  - Side panel: coverage grid (Canvas), quality meter, score table, per-view error bars
+  - Bottom: action buttons + keyboard shortcut hints
+  - Prompt overlay for Y/N confirmations
+- All keyboard shortcuts work in browser
+- Optional dependencies: `pip install charuco-calibrator[web]` (fastapi, uvicorn, websockets)
+- Graceful fallback to OpenCV UI when web deps not installed
+
 ### I) UX
 - Live overlay: detected markers/corners, score breakdown, coverage %, frame count, RMS
 - "ACCEPTED" flash on capture with green border pulse
@@ -107,6 +122,11 @@ charuco_calibrator/
   calibration.py       # cv2.calibrateCamera wrapper, async calibration, prune, YAML load/export
   visualize.py         # Distortion heatmap + visualization event loop (--visualize mode)
   ui.py                # Overlay drawing, coverage grid, quality bar, per-view errors, guidance arrow, keyboard dispatch
+  web_server.py        # FastAPI backend, WebSocket streaming, web calibration loop
+  static/
+    index.html         # Web UI single-page application
+    app.js             # WebSocket client, DOM updates, keyboard shortcuts
+    style.css          # Dark theme styling
   main.py              # run(cfg) calibration loop + CLI entry point + board generator + visualize dispatch
 config/
   default_config.yaml  # Full reference config with all parameters documented
@@ -148,6 +168,9 @@ All parameters live in a YAML config file (`config/default_config.yaml`) with CL
 - `--print-board <output>` — generate printable board image and exit
 - `--visualize` — enter distortion visualization mode
 - `--calibration <path>` — calibration YAML file (used with `--visualize`)
+- `--web` / `--no-web` — launch web UI (default) or fall back to OpenCV window
+- `--port <port>` — web UI server port (default: 8080)
+- `--host <host>` — web UI server host (default: 0.0.0.0)
 
 ## Usage
 
