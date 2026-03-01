@@ -498,6 +498,7 @@
       <div class="logo"><span>&lt;/&gt;</span> ChArUco Calibrator</div>
       <div class="nav-links">
         <a href="#features">Features</a>
+        <a href="#visualization">Visualization</a>
         <a href="#config">Config</a>
         <a href="#ros">ROS 2</a>
         <a href="https://github.com/yobahcorp/charuco_calibrator">GitHub</a>
@@ -596,6 +597,62 @@
           <div class="feature-icon fi-orange">&#9672;</div>
           <h3>Distortion Visualizer</h3>
           <p>Use <code>--visualize --calibration cal.yaml</code> to see a heatmap of distortion magnitude. Blue = low, red = high. Toggle undistort with <kbd>U</kbd>.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-yellow">&#9880;</div>
+          <h3>3D Visualization</h3>
+          <p>Interactive Plotly WebGL figure with four views: board poses, reprojection quiver, camera frustum, and coverage sphere. Opens in your browser.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- Visualization -->
+  <section class="section" id="visualization">
+    <div class="container">
+      <div class="section-label">Visualization</div>
+      <h2>Analyze your calibration</h2>
+      <p>Two post-calibration visualization modes to inspect distortion and spatial coverage.</p>
+
+      <div class="ros-options">
+        <div class="ros-card">
+          <span class="tag tag-quick">2D</span>
+          <h3>Distortion Heatmap</h3>
+          <p>Overlay a distortion magnitude heatmap onto a live stream or video. Blue regions have low distortion, red regions have high. Press <kbd>U</kbd> to toggle undistorted preview.</p>
+          <pre>charuco-calibrate \
+  --visualize \
+  --calibration calibration_output/calibration.yaml</pre>
+        </div>
+
+        <div class="ros-card">
+          <span class="tag tag-rec">3D &middot; Plotly</span>
+          <h3>Interactive 3D Analysis</h3>
+          <p>Opens a Plotly WebGL figure in your browser with four switchable views: extrinsic board poses, reprojection quiver, camera frustum, and coverage sphere.</p>
+          <pre>charuco-calibrate \
+  --visualize-3d \
+  --calibration calibration_output/calibration.yaml</pre>
+        </div>
+      </div>
+
+      <div class="keys-grid" style="margin-top: 24px;">
+        <div class="key-item" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+          <span style="color: var(--accent); font-weight: 600; font-size: 0.82rem;">Extrinsic View</span>
+          <span>Camera frustum + all board poses colored by reprojection error</span>
+        </div>
+        <div class="key-item" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+          <span style="color: var(--accent2); font-weight: 600; font-size: 0.82rem;">Reprojection Quiver</span>
+          <span>3D scatter of corners with error direction arrows</span>
+        </div>
+        <div class="key-item" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+          <span style="color: var(--orange); font-weight: 600; font-size: 0.82rem;">Camera Frustum</span>
+          <span>FOV pyramid with board center positions colored by distance</span>
+        </div>
+        <div class="key-item" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+          <span style="color: var(--yellow); font-weight: 600; font-size: 0.82rem;">Coverage Sphere</span>
+          <span>Board viewing directions on a unit sphere, showing angular gaps</span>
         </div>
       </div>
     </div>
