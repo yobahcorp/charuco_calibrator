@@ -79,6 +79,13 @@ CLI (main.py)  ─or─  ROS node (calibrator_node.py)
 - `--print-board <output.png>` generates a printable ChArUco board image matching config and exits
 - No camera or display required
 
+### J) Distortion visualization
+- `--visualize --calibration <path>` loads a saved calibration YAML and overlays a distortion magnitude heatmap
+- Precomputed via `cv2.initUndistortRectifyMap()` — pixel displacement magnitude rendered through JET colormap
+- U key toggles between heatmap overlay and live undistorted preview
+- Standalone event loop — no scoring, capture, or coverage logic
+- Works with any source (camera, video, image folder)
+
 ### I) UX
 - Live overlay: detected markers/corners, score breakdown, coverage %, frame count, RMS
 - "ACCEPTED" flash on capture with green border pulse
@@ -97,9 +104,10 @@ charuco_calibrator/
   detector.py          # CharucoBoard + CharucoDetector wrapper (OO + legacy fallback)
   scoring.py           # Frame scoring, blur, CoverageState, quality meter
   heatmap.py           # Gaussian splat accumulator + alpha-blend render
-  calibration.py       # cv2.calibrateCamera wrapper, async calibration, prune, YAML export
+  calibration.py       # cv2.calibrateCamera wrapper, async calibration, prune, YAML load/export
+  visualize.py         # Distortion heatmap + visualization event loop (--visualize mode)
   ui.py                # Overlay drawing, coverage grid, quality bar, per-view errors, guidance arrow, keyboard dispatch
-  main.py              # run(cfg) calibration loop + CLI entry point + board generator
+  main.py              # run(cfg) calibration loop + CLI entry point + board generator + visualize dispatch
 config/
   default_config.yaml  # Full reference config with all parameters documented
 tests/
@@ -138,6 +146,8 @@ All parameters live in a YAML config file (`config/default_config.yaml`) with CL
 - `--output-dir <dir>` — calibration output directory
 - `--camera-name <name>` — camera name for YAML
 - `--print-board <output>` — generate printable board image and exit
+- `--visualize` — enter distortion visualization mode
+- `--calibration <path>` — calibration YAML file (used with `--visualize`)
 
 ## Usage
 

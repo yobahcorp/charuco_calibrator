@@ -351,3 +351,41 @@ class CalibrationManager:
         self.observations.clear()
         self.result = None
         self._frame_counter = 0
+
+    @staticmethod
+    def load_calibration_yaml(path: str | Path) -> CalibrationResult:
+        """Load a calibration result from a ROS camera_info_manager YAML file.
+
+        Args:
+            path: Path to the calibration YAML file.
+
+        Returns:
+            CalibrationResult with camera_matrix, dist_coeffs, and image_size.
+
+        Raises:
+            FileNotFoundError: If the YAML file does not exist.
+            KeyError: If required fields are missing.
+        """
+        p = Path(path)
+        if not p.exists():
+            raise FileNotFoundError(f"Calibration file not found: {p}")
+
+        with open(p) as f:
+            data = yaml.safe_load(f)
+
+        cm = data["camera_matrix"]
+        camera_matrix = np.array(cm["data"], dtype=np.float64).reshape(cm["rows"], cm["cols"])
+
+        dc = data["distortion_coefficients"]
+        dist_coeffs = np.array(dc["data"], dtype=np.float64).reshape(dc["rows"], dc["cols"])
+
+        image_size = (int(data["image_width"]), int(data["image_height"]))
+        rms = float(data.get("rms_reprojection_error", 0.0))
+
+        return CalibrationResult(
+            rms=rms,
+            camera_matrix=camera_matrix,
+            dist_coeffs=dist_coeffs,
+            image_size=image_size,
+            valid=True,
+        )
