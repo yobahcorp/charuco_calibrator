@@ -17,6 +17,7 @@ from .heatmap import CornerHeatmap
 from .image_source import create_source
 from .scoring import CoverageState, score_frame
 from .ui import Action, UIRenderer
+from .visualize import run_visualize
 
 
 WINDOW_NAME = "ChArUco Calibrator"
@@ -74,6 +75,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         metavar="OUTPUT",
         help="Generate a printable ChArUco board image and exit",
+    )
+    parser.add_argument(
+        "--visualize",
+        action="store_true",
+        default=False,
+        help="Enter distortion visualization mode (requires --calibration)",
+    )
+    parser.add_argument(
+        "--calibration",
+        type=str,
+        default=None,
+        metavar="YAML_PATH",
+        help="Path to calibration YAML file (used with --visualize)",
     )
     return parser.parse_args(argv)
 
@@ -444,6 +458,14 @@ def main(argv: list[str] | None = None) -> int:
         cv2.imwrite(str(out_path), board_img)
         print(f"Board image saved to {out_path}")
         return 0
+
+    # Distortion visualization mode
+    if getattr(args, "visualize", False):
+        cal_path = getattr(args, "calibration", None)
+        if cal_path is None:
+            print("ERROR: --visualize requires --calibration <path>", file=sys.stderr)
+            return 1
+        return run_visualize(cfg, cal_path)
 
     return run(cfg)
 

@@ -478,6 +478,63 @@ class UIRenderer:
         cv2.putText(vis, hints, (pad, fh - int(8 * s)), self.FONT, 0.35 * s, self.WHITE, thick)
         return vis
 
+    def draw_visualize_status_bar(
+        self,
+        frame: np.ndarray,
+        *,
+        rms: float,
+        fps: float,
+        show_undistort: bool,
+        image_size: tuple[int, int],
+    ) -> np.ndarray:
+        """Draw a minimal status bar for distortion visualization mode."""
+        vis = frame.copy()
+        h, w = vis.shape[:2]
+        s = self._scale(frame)
+        font_main = 0.48 * s
+        font_sm = 0.40 * s
+        thick = max(1, round(s))
+        pad = int(8 * s)
+        line_h = int(18 * s)
+        bar_h = int(42 * s)
+
+        overlay = vis.copy()
+        cv2.rectangle(overlay, (0, 0), (w, bar_h), self.BLACK, -1)
+        cv2.addWeighted(overlay, 0.6, vis, 0.4, 0, vis)
+
+        y = int(16 * s)
+        mode_str = "Undistort Preview" if show_undistort else "Distortion Heatmap"
+        cv2.putText(vis, f"VISUALIZE: {mode_str}", (pad, y), self.FONT, font_main, self.CYAN, thick)
+
+        right_label = f"FPS: {fps:.1f}"
+        text_size = cv2.getTextSize(right_label, self.FONT, font_sm, thick)[0]
+        cv2.putText(vis, right_label, (w - text_size[0] - pad, y), self.FONT, font_sm, self.CYAN, thick)
+
+        y += line_h
+        cal_w, cal_h = image_size
+        rms_color = self.GREEN if rms < 1.0 else self.YELLOW if rms < 2.0 else self.RED
+        cv2.putText(
+            vis, f"RMS: {rms:.3f} px  |  Cal: {cal_w}x{cal_h}  |  Display: {w}x{h}",
+            (pad, y), self.FONT, font_sm, rms_color, thick,
+        )
+        return vis
+
+    def draw_visualize_help_hint(self, frame: np.ndarray) -> np.ndarray:
+        """Draw keyboard hints for visualization mode."""
+        vis = frame.copy()
+        fh, fw = vis.shape[:2]
+        s = self._scale(frame)
+        thick = max(1, round(s))
+        bar_h = self._hint_bar_height(s)
+        pad = int(8 * s)
+
+        overlay = vis.copy()
+        cv2.rectangle(overlay, (0, fh - bar_h), (fw, fh), self.BLACK, -1)
+        cv2.addWeighted(overlay, 0.6, vis, 0.4, 0, vis)
+
+        cv2.putText(vis, "U:toggle undistort  Q/ESC:quit", (pad, fh - int(8 * s)), self.FONT, 0.35 * s, self.WHITE, thick)
+        return vis
+
     @staticmethod
     def poll_key(wait_ms: int = 1) -> Action:
         """Poll for a keyboard event and return the corresponding Action."""
