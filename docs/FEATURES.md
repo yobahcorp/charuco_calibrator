@@ -158,6 +158,24 @@ When pressing **Q** or **ESC** with an unsaved calibration, a prompt appears: "S
 
 Set `gpu: true` in the config to enable OpenCL GPU acceleration. At startup, the system auto-detects OpenCL availability and logs the GPU device name. If no GPU is found, it falls back to CPU with a warning message. OpenCL accelerates compatible OpenCV operations transparently (resize, color conversion, blending).
 
+### 17. Distortion Visualization
+
+After calibrating, use `--visualize --calibration` to see where and how much distortion exists in your camera's field of view:
+
+```bash
+charuco-calibrate --visualize --calibration calibration_output/calibration.yaml
+charuco-calibrate --visualize --calibration cal.yaml --image-folder ./frames/
+charuco-calibrate --visualize --calibration cal.yaml --video recording.mp4
+```
+
+A distortion magnitude heatmap is computed from the calibration parameters and blended onto the live stream:
+- **Blue** regions have low distortion (near image center)
+- **Red** regions have high distortion (typically corners/edges)
+- Press **U** to toggle between the heatmap and a live undistorted preview
+- The heatmap is precomputed once — no per-frame performance cost beyond the blend
+
+The status bar shows RMS, calibration resolution, and display resolution.
+
 ### 8. Save & Export
 
 Press **S** to save calibration results:
@@ -268,6 +286,8 @@ See `config/default_config.yaml` for the full reference with all parameters docu
 | `--output-dir <dir>` | Output directory for calibration files |
 | `--camera-name <name>` | Camera name written into the YAML |
 | `--print-board <output>` | Generate a printable ChArUco board image and exit |
+| `--visualize` | Enter distortion visualization mode (requires `--calibration`) |
+| `--calibration <path>` | Path to calibration YAML file (used with `--visualize`) |
 
 ### Config Sections
 

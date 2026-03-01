@@ -74,6 +74,31 @@
 
 - Rebuilt package v0.1.0 (sdist + wheel in `dist/`)
 
+- Tightened UI layout to fix overlay overlaps
+  - Shrunk status panel (60px scaled), smaller fonts, tighter line spacing
+  - Per-view error bars clamped to avoid overlapping hint bar
+  - Coverage grid/quality meter positioned above hint bar using shared height constants
+  - Switched window to `WINDOW_KEEPRATIO`
+  - Commit: `91da21e`
+
+- Keep UI open after stream ends for video/image folder sources
+  - Shows last frame with flash message "Stream ended — S:save  C:calibrate  Q:quit"
+  - User can save/calibrate/review before quitting
+  - Commit: `60dd18f`
+
+- Created `feature/web-ui` branch and added Feature 14 (Web UI) to backlog
+
+- Implemented `--visualize --calibration` mode for distortion heatmap overlay
+  - New `load_calibration_yaml()` static method on `CalibrationManager` — parses saved YAML back into `CalibrationResult`
+  - New `charuco_calibrator/visualize.py` module:
+    - `DistortionHeatmap` class — precomputes pixel displacement magnitude via `cv2.initUndistortRectifyMap()`, renders through JET colormap
+    - `run_visualize()` — standalone event loop with heatmap overlay, U toggles undistort, Q quits
+  - Minimal visualization UI: `draw_visualize_status_bar()` + `draw_visualize_help_hint()` in `ui.py`
+  - `--visualize` (boolean) + `--calibration <path>` CLI flags with early-exit dispatch in `main.py`
+  - 9 new tests in `tests/test_visualize.py` (73 total, all passing)
+  - Tested on `combined_cal_rosbag` (690 images) — works correctly
+  - Commit: `d8d2a04`
+
 ### Decisions
 
 - Image folder frames sorted alphabetically (standard `sorted()`)
@@ -83,3 +108,6 @@
 - Background calibration uses snapshot of observations (copied under lock) to avoid contention with main thread
 - Calibration completion detected via `_cal_flash_shown` flag to show RMS flash once
 - Per-view error computation bounds-checked against result rvecs length, not observations length
+- Distortion heatmap computed once at init (displacement map from `initUndistortRectifyMap`), blended every frame
+- Sub-pixel displacement threshold (0.5px) prevents noise amplification with zero/near-zero distortion
+- Visualization mode is a separate event loop (`run_visualize`) — no scoring, capture, or coverage logic
