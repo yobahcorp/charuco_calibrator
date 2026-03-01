@@ -597,6 +597,18 @@
           <h3>Distortion Visualizer</h3>
           <p>Use <code>--visualize --calibration cal.yaml</code> to see a heatmap of distortion magnitude. Blue = low, red = high. Toggle undistort with <kbd>U</kbd>.</p>
         </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-green">&#9651;</div>
+          <h3>AR Object Overlay</h3>
+          <p>Render 3D objects on the detected board &mdash; coordinate axes, wireframe cube, solid cube, or custom OBJ mesh. Pose smoothed with EMA to reduce jitter.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon fi-cyan">&#9711;</div>
+          <h3>Synthetic Bokeh</h3>
+          <p>Depth-of-field blur keeps the board sharp while the background blurs. Toggle between board-focus and tilt-shift modes with <kbd>B</kbd>. Gaussian or lens blur.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -662,6 +674,7 @@
         <div class="key-item"><kbd>H</kbd> <span>Toggle heatmap</span></div>
         <div class="key-item"><kbd>U</kbd> <span>Toggle undistort preview</span></div>
         <div class="key-item"><kbd>Z</kbd> <span>Undo last capture</span></div>
+        <div class="key-item"><kbd>B</kbd> <span>Toggle bokeh mode</span></div>
         <div class="key-item"><kbd>Y</kbd> / <kbd>N</kbd> <span>Accept / dismiss prompt</span></div>
         <div class="key-item"><kbd>Q</kbd> / <kbd>ESC</kbd> <span>Quit (save prompt)</span></div>
       </div>
@@ -709,7 +722,20 @@
           <span class="key">recalibrate_every</span>: <span class="val">5</span><br>
           <span class="key">auto_prune</span>: <span class="val">true</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># auto-remove outlier frames</span><br>
           <span class="key">prune_threshold</span>: <span class="val">2.0</span> &nbsp;&nbsp;&nbsp;<span class="cmt"># error &gt; N * mean</span><br>
-          <span class="key">gpu</span>: <span class="val">false</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># OpenCL acceleration</span>
+          <span class="key">gpu</span>: <span class="val">false</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># OpenCL acceleration</span><br>
+          <br>
+          <span class="key">ar</span>:<br>
+          &nbsp;&nbsp;<span class="key">enabled</span>: <span class="val">false</span><br>
+          &nbsp;&nbsp;<span class="key">ar_object</span>: <span class="str">wireframe</span> &nbsp;&nbsp;<span class="cmt"># axes, wireframe, solid, obj</span><br>
+          &nbsp;&nbsp;<span class="key">scale</span>: <span class="val">1.0</span><br>
+          &nbsp;&nbsp;<span class="key">smooth_alpha</span>: <span class="val">0.6</span> &nbsp;&nbsp;&nbsp;<span class="cmt"># EMA pose smoothing</span><br>
+          <br>
+          <span class="key">bokeh</span>:<br>
+          &nbsp;&nbsp;<span class="key">enabled</span>: <span class="val">false</span><br>
+          &nbsp;&nbsp;<span class="key">strength</span>: <span class="val">25</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># blur kernel size</span><br>
+          &nbsp;&nbsp;<span class="key">feather</span>: <span class="val">31</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cmt"># mask edge softening</span><br>
+          &nbsp;&nbsp;<span class="key">blur_mode</span>: <span class="str">gaussian</span> &nbsp;&nbsp;&nbsp;<span class="cmt"># gaussian or lens</span><br>
+          &nbsp;&nbsp;<span class="key">focus_mode</span>: <span class="str">board_focus</span> <span class="cmt"># or tilt_shift</span>
         </div>
       </div>
     </div>

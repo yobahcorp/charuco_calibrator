@@ -14,3 +14,4 @@ calibration_output/
 .venv/
 venv/
 combined_cal_rosbag
+combined_cal_rosbag_temp

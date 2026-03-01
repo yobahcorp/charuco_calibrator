@@ -26,6 +26,7 @@ class Action(Enum):
     DENY = auto()
     UNDO = auto()
     UNDISTORT = auto()
+    TOGGLE_BOKEH = auto()
 
 
 # Key mappings
@@ -52,6 +53,8 @@ _KEY_MAP = {
     ord("Z"): Action.UNDO,
     ord("u"): Action.UNDISTORT,
     ord("U"): Action.UNDISTORT,
+    ord("b"): Action.TOGGLE_BOKEH,
+    ord("B"): Action.TOGGLE_BOKEH,
 }
 
 
@@ -100,6 +103,8 @@ class UIRenderer:
         aruco_dict: str = "",
         fps: float = 0.0,
         show_undistort: bool = False,
+        show_ar: bool = False,
+        show_bokeh: bool = False,
     ) -> np.ndarray:
         """Draw the status information panel at the top of the frame."""
         vis = frame.copy()
@@ -122,7 +127,9 @@ class UIRenderer:
         auto_str = "ON" if auto_capture else "OFF"
         hm_str = "ON" if show_heatmap else "OFF"
         ud_str = "  |  Undistort: ON" if show_undistort else ""
-        line1 = f"Frames: {num_accepted}  |  Auto: {auto_str}  |  Heatmap: {hm_str}{ud_str}"
+        ar_str = "  |  AR: ON" if show_ar else ""
+        bk_str = "  |  Bokeh: ON" if show_bokeh else ""
+        line1 = f"Frames: {num_accepted}  |  Auto: {auto_str}  |  Heatmap: {hm_str}{ud_str}{ar_str}{bk_str}"
         cv2.putText(vis, line1, (pad, y), self.FONT, font_main, self.WHITE, thick)
 
         # FPS + dictionary label — top-right corner
@@ -460,7 +467,7 @@ class UIRenderer:
     def _hint_bar_height(s: float) -> int:
         return int(24 * s)
 
-    def draw_help_hint(self, frame: np.ndarray) -> np.ndarray:
+    def draw_help_hint(self, frame: np.ndarray, *, show_bokeh: bool = False) -> np.ndarray:
         """Draw keyboard shortcut hints on a dark strip at the bottom."""
         vis = frame.copy()
         fh, fw = vis.shape[:2]
@@ -474,7 +481,10 @@ class UIRenderer:
         cv2.rectangle(overlay, (0, fh - bar_h), (fw, fh), self.BLACK, -1)
         cv2.addWeighted(overlay, 0.6, vis, 0.4, 0, vis)
 
-        hints = "SPACE:capture  A:auto  C:calibrate  R:reset  S:save  H:heatmap  U:undistort  Z:undo  Q:quit"
+        hints = "SPACE:capture  A:auto  C:calibrate  R:reset  S:save  H:heatmap  U:undistort  Z:undo"
+        if show_bokeh:
+            hints += "  B:bokeh"
+        hints += "  Q:quit"
         cv2.putText(vis, hints, (pad, fh - int(8 * s)), self.FONT, 0.35 * s, self.WHITE, thick)
         return vis
 

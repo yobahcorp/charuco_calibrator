@@ -103,6 +103,28 @@ class OutputConfig:
 
 
 @dataclass
+class ARConfig:
+    """AR overlay configuration."""
+
+    enabled: bool = False
+    ar_object: str = "wireframe"  # axes, wireframe, solid, obj
+    obj_path: Optional[str] = None
+    scale: float = 1.0
+    smooth_alpha: float = 0.6  # EMA pose smoothing (0=max smooth, 1=full follow)
+
+
+@dataclass
+class BokehConfig:
+    """Synthetic bokeh configuration."""
+
+    enabled: bool = False
+    strength: int = 25  # max blur kernel size (must be odd)
+    feather: int = 31  # mask feathering kernel size (must be odd)
+    blur_mode: str = "gaussian"  # gaussian or lens
+    focus_mode: str = "board_focus"  # board_focus or tilt_shift
+
+
+@dataclass
 class AppConfig:
     """Top-level application configuration."""
 
@@ -111,6 +133,8 @@ class AppConfig:
     coverage: CoverageConfig = field(default_factory=CoverageConfig)
     source: SourceConfig = field(default_factory=SourceConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
+    ar: ARConfig = field(default_factory=ARConfig)
+    bokeh: BokehConfig = field(default_factory=BokehConfig)
     auto_capture: bool = False
     show_heatmap: bool = False
     recalibrate_every: int = 5
@@ -167,6 +191,27 @@ def apply_cli_overrides(cfg: AppConfig, args: argparse.Namespace) -> AppConfig:
         cfg.output.output_dir = args.output_dir
     if getattr(args, "camera_name", None) is not None:
         cfg.output.camera_name = args.camera_name
+
+    # AR overrides
+    if getattr(args, "ar", False):
+        cfg.ar.enabled = True
+    if getattr(args, "ar_object", None) is not None:
+        cfg.ar.ar_object = args.ar_object
+    if getattr(args, "ar_obj_path", None) is not None:
+        cfg.ar.obj_path = args.ar_obj_path
+    if getattr(args, "ar_scale", None) is not None:
+        cfg.ar.scale = args.ar_scale
+
+    # Bokeh overrides
+    if getattr(args, "bokeh", False):
+        cfg.bokeh.enabled = True
+    if getattr(args, "bokeh_strength", None) is not None:
+        cfg.bokeh.strength = args.bokeh_strength
+    if getattr(args, "bokeh_feather", None) is not None:
+        cfg.bokeh.feather = args.bokeh_feather
+    if getattr(args, "bokeh_mode", None) is not None:
+        cfg.bokeh.blur_mode = args.bokeh_mode
+
     return cfg
 
 

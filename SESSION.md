@@ -111,3 +111,56 @@
 - Distortion heatmap computed once at init (displacement map from `initUndistortRectifyMap`), blended every frame
 - Sub-pixel displacement threshold (0.5px) prevents noise amplification with zero/near-zero distortion
 - Visualization mode is a separate event loop (`run_visualize`) — no scoring, capture, or coverage logic
+
+## 2026-03-01
+
+### Changes
+
+- Implemented Feature 7: AR Object Overlay (`charuco_calibrator/ar_overlay.py`)
+  - `estimate_board_pose()` — board pose estimation via `cv2.solvePnP`
+  - `PoseSmoother` — EMA filter on rvec/tvec to reduce jitter
+  - `AROverlay` class with 4 object types: coordinate axes (RGB), wireframe cube, solid cube (alpha-blended), custom OBJ mesh
+  - Geometry generators: `_make_axes_geometry()`, `_make_wireframe_cube_geometry()`, `_make_solid_cube_faces()`
+  - `load_obj_mesh()` — simple Wavefront OBJ parser (v/f lines)
+  - CLI flags: `--ar`, `--ar-object`, `--ar-obj-path`, `--ar-scale`
+  - Config: `ARConfig` dataclass (`enabled`, `ar_object`, `obj_path`, `scale`, `smooth_alpha`)
+  - 21 tests in `tests/test_ar_overlay.py`
+
+- Implemented Feature 8: Synthetic Bokeh / Depth of Field (`charuco_calibrator/bokeh.py`)
+  - `BokehEffect` class with board-focus and tilt-shift modes
+  - `create_board_mask()` — convex hull of detected corners → feathered mask
+  - `create_tilt_shift_mask()` — horizontal band mask for miniature effect
+  - `_make_disk_kernel()` — circular kernel for lens-style bokeh blur
+  - Two blur types: gaussian (GaussianBlur) and lens (disk kernel via filter2D)
+  - B key toggles focus mode; bokeh can also be toggled on/off via B when calibration is available
+  - CLI flags: `--bokeh`, `--bokeh-strength`, `--bokeh-feather`, `--bokeh-mode`
+  - Config: `BokehConfig` dataclass (`enabled`, `strength`, `feather`, `blur_mode`, `focus_mode`)
+  - 20 tests in `tests/test_bokeh.py`
+
+- Shared infrastructure changes:
+  - `--calibration` now works without `--visualize` for standalone AR/Bokeh mode (preloads calibration into `cal_manager`)
+  - `run()` accepts optional `preloaded_calibration` parameter
+  - Single `estimate_board_pose()` call per frame shared between AR and bokeh
+  - AR and bokeh can coexist (`--ar --bokeh`) and gracefully skip when calibration not yet available
+  - `TOGGLE_BOKEH` action + B key binding in `ui.py`
+  - Status panel shows AR/Bokeh ON indicators; help hint bar shows B:bokeh when enabled
+  - Updated `config/default_config.yaml` with `ar:` and `bokeh:` sections
+  - 114 total tests, all passing
+
+- Updated all documentation:
+  - README.md: new feature bullets, keyboard controls, CLI flags, config sections, project structure
+  - FEATURES.md: Feature 18 (AR overlay) and 19 (Synthetic bokeh) sections, CLI flags, keyboard controls, config sections
+  - CLAUDE_SPEC.md: sections K (AR) and L (Bokeh), file layout, CLI flags, keyboard line
+  - docs/index.html: 2 new feature cards, B key shortcut, AR/Bokeh config in display block
+  - SESSION.md: logged all changes
+  - Removed completed features 7 and 8 from BACKLOG.md
+
+### Decisions
+
+- `estimate_board_pose` is a standalone function (not class method) so both AR and bokeh share one solvePnP call per frame
+- AR and bokeh modules are decoupled from detector.py — they take raw numpy arrays
+- Pose smoothing uses simple EMA (alpha=0.6) — sufficient for real-time use, avoids Kalman filter complexity
+- Solid cube uses painter's algorithm (sort by Z) for face ordering — adequate for convex objects
+- Bokeh mask uses convex hull of corners + Gaussian feathering — simple and effective
+- Disk kernel for lens blur precomputed once at init — no per-frame allocation
+- `--calibration` flag expanded to work for AR/Bokeh standalone mode (not just `--visualize`)

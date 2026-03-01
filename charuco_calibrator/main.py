@@ -10,7 +10,9 @@ from pathlib import Path
 
 import cv2
 
-from .calibration import CalibrationManager
+from .ar_overlay import AROverlay, estimate_board_pose
+from .bokeh import BokehEffect
+from .calibration import CalibrationManager, CalibrationResult
 from .config import AppConfig, load_config, apply_cli_overrides
 from .detector import CharucoDetectorWrapper, probe_aruco_dictionaries
 from .heatmap import CornerHeatmap
@@ -87,7 +89,59 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=str,
         default=None,
         metavar="YAML_PATH",
-        help="Path to calibration YAML file (used with --visualize)",
+        help="Path to calibration YAML file (used with --visualize, --ar, or --bokeh)",
+    )
+    # AR arguments
+    parser.add_argument(
+        "--ar",
+        action="store_true",
+        default=False,
+        help="Enable AR object overlay",
+    )
+    parser.add_argument(
+        "--ar-object",
+        type=str,
+        default=None,
+        choices=["axes", "wireframe", "solid", "obj"],
+        help="AR object type (default: wireframe)",
+    )
+    parser.add_argument(
+        "--ar-obj-path",
+        type=str,
+        default=None,
+        help="Path to .obj file (required when --ar-object=obj)",
+    )
+    parser.add_argument(
+        "--ar-scale",
+        type=float,
+        default=None,
+        help="AR object scale relative to board square length (default: 1.0)",
+    )
+    # Bokeh arguments
+    parser.add_argument(
+        "--bokeh",
+        action="store_true",
+        default=False,
+        help="Enable synthetic bokeh / depth-of-field effect",
+    )
+    parser.add_argument(
+        "--bokeh-strength",
+        type=int,
+        default=None,
+        help="Max blur kernel size in pixels (default: 25)",
+    )
+    parser.add_argument(
+        "--bokeh-feather",
+        type=int,
+        default=None,
+        help="Mask feathering kernel size in pixels (default: 31)",
+    )
+    parser.add_argument(
+        "--bokeh-mode",
+        type=str,
+        default=None,
+        choices=["gaussian", "lens"],
+        help="Blur type: gaussian or lens (default: gaussian)",
     )
     return parser.parse_args(argv)
 
@@ -114,7 +168,10 @@ def _init_gpu(enabled: bool) -> bool:
     return False
 
 
-def run(cfg: AppConfig) -> int:
+def run(
+    cfg: AppConfig,
+    preloaded_calibration: CalibrationResult | None = None,
+) -> int:
     """Run the calibration loop with the given config.
 
     This can be called directly with a programmatically-built AppConfig
@@ -131,12 +188,39 @@ def run(cfg: AppConfig) -> int:
         scale_bins=cfg.coverage.scale_bins,
     )
     cal_manager = CalibrationManager()
+    if preloaded_calibration is not None:
+        cal_manager.result = preloaded_calibration
+        cal_manager.image_size = preloaded_calibration.image_size
+
     ui = UIRenderer()
     heatmap: CornerHeatmap | None = None
     show_heatmap = cfg.show_heatmap
     auto_capture = cfg.auto_capture
     show_undistort = False
     _saved = False
+
+    # AR overlay
+    ar_overlay: AROverlay | None = None
+    show_ar = cfg.ar.enabled
+    if show_ar:
+        ar_overlay = AROverlay(
+            ar_object=cfg.ar.ar_object,
+            obj_path=cfg.ar.obj_path,
+            scale=cfg.ar.scale,
+            square_length=cfg.board.square_length,
+            smooth_alpha=cfg.ar.smooth_alpha,
+        )
+
+    # Bokeh effect
+    bokeh_effect: BokehEffect | None = None
+    show_bokeh = cfg.bokeh.enabled
+    if show_bokeh:
+        bokeh_effect = BokehEffect(
+            strength=cfg.bokeh.strength,
+            feather=cfg.bokeh.feather,
+            blur_mode=cfg.bokeh.blur_mode,
+            focus_mode=cfg.bokeh.focus_mode,
+        )
 
     # Image source
     source = create_source(cfg.source)
@@ -253,6 +337,43 @@ def run(cfg: AppConfig) -> int:
             # Heatmap blend
             if show_heatmap and heatmap is not None:
                 vis = heatmap.blend_onto(vis)
+
+            # AR + Bokeh rendering (both need calibration data)
+            _cal_data_available = (
+                cal_manager.result is not None
+                and cal_manager.result.valid
+                and cal_manager.result.camera_matrix is not None
+            )
+
+            if _cal_data_available and result.valid:
+                obj_pts_pose, img_pts_pose = detector.match_image_points(
+                    result.charuco_corners, result.charuco_ids
+                )
+                pose = estimate_board_pose(
+                    obj_pts_pose,
+                    img_pts_pose,
+                    cal_manager.result.camera_matrix,
+                    cal_manager.result.dist_coeffs,
+                )
+            else:
+                pose = None
+
+            if show_ar and ar_overlay is not None and pose is not None and pose.success:
+                vis = ar_overlay.render(
+                    vis,
+                    pose,
+                    cal_manager.result.camera_matrix,
+                    cal_manager.result.dist_coeffs,
+                )
+
+            if show_bokeh and bokeh_effect is not None and result.valid:
+                board_center_y_norm = None
+                if result.charuco_corners is not None:
+                    pts = result.charuco_corners.reshape(-1, 2)
+                    board_center_y_norm = float(pts[:, 1].mean()) / h
+                vis = bokeh_effect.apply(
+                    vis, result.charuco_corners, board_center_y_norm
+                )
 
             # Poll keyboard
             action = ui.poll_key(wait_ms=1)
@@ -373,6 +494,24 @@ def run(cfg: AppConfig) -> int:
                     show_undistort = not show_undistort
                 else:
                     ui.trigger_flash("Calibrate first (press C)", now)
+            elif action == Action.TOGGLE_BOKEH:
+                if bokeh_effect is not None:
+                    new_mode = bokeh_effect.toggle_focus_mode()
+                    ui.trigger_flash(f"Bokeh: {new_mode}", now)
+                elif _cal_data_available:
+                    show_bokeh = not show_bokeh
+                    if show_bokeh and bokeh_effect is None:
+                        bokeh_effect = BokehEffect(
+                            strength=cfg.bokeh.strength,
+                            feather=cfg.bokeh.feather,
+                            blur_mode=cfg.bokeh.blur_mode,
+                            focus_mode=cfg.bokeh.focus_mode,
+                        )
+                    ui.trigger_flash(
+                        f"Bokeh: {'ON' if show_bokeh else 'OFF'}", now
+                    )
+                else:
+                    ui.trigger_flash("Calibrate first (press C)", now)
             elif action == Action.QUIT:
                 # Auto-save prompt if unsaved calibration exists
                 if (
@@ -416,6 +555,8 @@ def run(cfg: AppConfig) -> int:
                 aruco_dict=cfg.board.aruco_dict,
                 fps=fps,
                 show_undistort=show_undistort,
+                show_ar=show_ar,
+                show_bokeh=show_bokeh,
             )
             vis = ui.draw_prompt(vis)
             if cal_manager.result and cal_manager.result.valid:
@@ -428,7 +569,7 @@ def run(cfg: AppConfig) -> int:
             vis = ui.draw_border_flash(vis, now)
             if cal_manager.is_calibrating:
                 vis = ui.draw_calibrating_indicator(vis, now)
-            vis = ui.draw_help_hint(vis)
+            vis = ui.draw_help_hint(vis, show_bokeh=show_bokeh or cfg.bokeh.enabled)
 
             cv2.imshow(WINDOW_NAME, vis)
 
@@ -467,7 +608,17 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         return run_visualize(cfg, cal_path)
 
-    return run(cfg)
+    # Load calibration for standalone AR/Bokeh mode
+    preloaded_cal = None
+    cal_path = getattr(args, "calibration", None)
+    if cal_path:
+        try:
+            preloaded_cal = CalibrationManager.load_calibration_yaml(cal_path)
+        except (FileNotFoundError, KeyError) as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
+
+    return run(cfg, preloaded_calibration=preloaded_cal)
 
 
 def cli() -> None:

@@ -17,6 +17,8 @@ Works with any USB webcam, video file, or folder of images via OpenCV. Optionall
 - **Corner heatmap** — Gaussian-splat overlay to visualize observation density
 - **Auto-capture** — hands-free data collection with configurable cooldown
 - **Auto-recalibration** — RMS updates as you collect more frames
+- **AR object overlay** — render 3D objects (axes, wireframe cube, solid cube, OBJ mesh) on the detected board
+- **Synthetic bokeh** — depth-of-field blur with board-focus and tilt-shift modes
 - **YAML export** — ROS `camera_info_manager` compatible format
 - **ROS 2 integration** — standalone `--ros-topic` flag or dedicated ROS 2 package
 
@@ -58,6 +60,9 @@ charuco-calibrate --ros-topic /camera/image_raw
 | `S` | Save calibration YAML + observations |
 | `R` | Reset all data |
 | `H` | Toggle heatmap overlay |
+| `U` | Toggle undistort preview |
+| `Z` | Undo last capture |
+| `B` | Toggle bokeh mode |
 | `Q` / `ESC` | Quit |
 
 ## Configuration
@@ -79,6 +84,17 @@ charuco-calibrate --config my_config.yaml --camera 0 --output-dir results/
 | `--ros-topic <topic>` | ROS 2 image topic name |
 | `--output-dir <dir>` | Output directory for calibration files |
 | `--camera-name <name>` | Camera name written into the YAML |
+| `--print-board <output>` | Generate a printable ChArUco board image and exit |
+| `--visualize` | Enter distortion visualization mode (requires `--calibration`) |
+| `--calibration <path>` | Path to calibration YAML (for `--visualize`, `--ar`, or `--bokeh`) |
+| `--ar` | Enable AR object overlay |
+| `--ar-object <type>` | AR object: `axes`, `wireframe`, `solid`, `obj` (default: wireframe) |
+| `--ar-obj-path <path>` | Path to .obj file (required when `--ar-object=obj`) |
+| `--ar-scale <float>` | AR object scale relative to board square length (default: 1.0) |
+| `--bokeh` | Enable synthetic bokeh / depth-of-field effect |
+| `--bokeh-strength <int>` | Max blur kernel size in pixels (default: 25) |
+| `--bokeh-feather <int>` | Mask feathering kernel size (default: 31) |
+| `--bokeh-mode <type>` | Blur type: `gaussian` or `lens` (default: gaussian) |
 
 ### Config File
 
@@ -91,6 +107,8 @@ See [`config/default_config.yaml`](config/default_config.yaml) for the full refe
 | **coverage** | `grid_cols`, `grid_rows`, `scale_bins` |
 | **source** | `camera_id`, `video_path`, `image_folder`, `ros_topic`, `width`, `height` |
 | **output** | `output_dir`, `camera_name`, `save_observations` |
+| **ar** | `enabled`, `ar_object`, `obj_path`, `scale`, `smooth_alpha` |
+| **bokeh** | `enabled`, `strength`, `feather`, `blur_mode`, `focus_mode` |
 
 ## Board Setup
 
@@ -172,6 +190,9 @@ charuco_calibrator/
   scoring.py         # Frame scoring and coverage tracking
   heatmap.py         # Gaussian-splat corner heatmap
   calibration.py     # cv2.calibrateCamera wrapper + YAML export
+  ar_overlay.py      # AR object overlay (pose estimation + 3D rendering)
+  bokeh.py           # Synthetic bokeh / depth-of-field effect
+  visualize.py       # Distortion heatmap visualization mode
   ui.py              # Overlay rendering + keyboard dispatch
   main.py            # run(cfg) loop + CLI entry point
 config/

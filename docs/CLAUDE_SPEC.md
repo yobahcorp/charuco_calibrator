@@ -86,6 +86,22 @@ CLI (main.py)  ─or─  ROS node (calibrator_node.py)
 - Standalone event loop — no scoring, capture, or coverage logic
 - Works with any source (camera, video, image folder)
 
+### K) AR Object Overlay
+- `--ar` enables AR overlay mode, combinable with normal calibration or standalone with `--calibration`
+- Per-frame board pose estimation via `cv2.solvePnP` using matched charuco points + calibrated intrinsics
+- Built-in objects: coordinate axes (RGB), wireframe cube, solid cube (alpha-blended faces), custom OBJ mesh
+- `--ar-object {axes,wireframe,solid,obj}`, `--ar-obj-path`, `--ar-scale`
+- EMA pose smoothing to reduce solvePnP jitter (`ar.smooth_alpha`)
+- Geometry precomputed at init; per-frame cost is solvePnP + projectPoints + draw
+
+### L) Synthetic Bokeh / Depth of Field
+- `--bokeh` enables synthetic depth-of-field effect
+- Board region (convex hull of detected corners) stays sharp, background blurs
+- Feathered mask blending: `output = sharp * mask + blurred * (1 - mask)`
+- Two focus modes (toggle with B key): board_focus (default) and tilt_shift (horizontal band)
+- Two blur types: gaussian (GaussianBlur) and lens (circular disk kernel via filter2D)
+- `--bokeh-strength`, `--bokeh-feather`, `--bokeh-mode`
+
 ### I) UX
 - Live overlay: detected markers/corners, score breakdown, coverage %, frame count, RMS
 - "ACCEPTED" flash on capture with green border pulse
@@ -93,7 +109,7 @@ CLI (main.py)  ─or─  ROS node (calibrator_node.py)
 - Coverage guidance arrow pointing toward least-covered grid region
 - Per-view error bar chart after calibration
 - Status panel, coverage grid, quality meter bar, dark help hint bar
-- **Keyboard**: SPACE=capture, A=auto, C=calibrate, R=reset, S=save, H=heatmap, U=undistort, Z=undo, Q=quit
+- **Keyboard**: SPACE=capture, A=auto, C=calibrate, R=reset, S=save, H=heatmap, U=undistort, Z=undo, B=bokeh, Q=quit
 
 ## File Layout
 ```
@@ -105,6 +121,8 @@ charuco_calibrator/
   scoring.py           # Frame scoring, blur, CoverageState, quality meter
   heatmap.py           # Gaussian splat accumulator + alpha-blend render
   calibration.py       # cv2.calibrateCamera wrapper, async calibration, prune, YAML load/export
+  ar_overlay.py        # AR object overlay — pose estimation (solvePnP), geometry, projection, rendering
+  bokeh.py             # Synthetic bokeh — board mask, tilt-shift mask, gaussian/lens blur, blending
   visualize.py         # Distortion heatmap + visualization event loop (--visualize mode)
   ui.py                # Overlay drawing, coverage grid, quality bar, per-view errors, guidance arrow, keyboard dispatch
   main.py              # run(cfg) calibration loop + CLI entry point + board generator + visualize dispatch
@@ -118,6 +136,9 @@ tests/
   test_heatmap.py
   test_calibration.py
   test_image_source.py
+  test_ar_overlay.py
+  test_bokeh.py
+  test_visualize.py
 pyproject.toml         # Package metadata + charuco-calibrate entry point
 
 charuco_calibrator_ros/          # ROS 2 ament_python wrapper package
@@ -147,7 +168,15 @@ All parameters live in a YAML config file (`config/default_config.yaml`) with CL
 - `--camera-name <name>` — camera name for YAML
 - `--print-board <output>` — generate printable board image and exit
 - `--visualize` — enter distortion visualization mode
-- `--calibration <path>` — calibration YAML file (used with `--visualize`)
+- `--calibration <path>` — calibration YAML file (for `--visualize`, `--ar`, or `--bokeh`)
+- `--ar` — enable AR object overlay
+- `--ar-object <type>` — AR object type: `axes`, `wireframe`, `solid`, `obj`
+- `--ar-obj-path <path>` — path to .obj file (for `--ar-object=obj`)
+- `--ar-scale <float>` — AR object scale relative to board square length
+- `--bokeh` — enable synthetic bokeh / depth-of-field effect
+- `--bokeh-strength <int>` — max blur kernel size
+- `--bokeh-feather <int>` — mask feathering kernel size
+- `--bokeh-mode <type>` — blur type: `gaussian` or `lens`
 
 ## Usage
 

@@ -176,6 +176,83 @@ A distortion magnitude heatmap is computed from the calibration parameters and b
 
 The status bar shows RMS, calibration resolution, and display resolution.
 
+### 18. AR Object Overlay
+
+Render virtual 3D objects on the detected ChArUco board in the live camera feed using the per-frame board pose and calibrated intrinsics:
+
+```bash
+# During calibration (AR activates once calibration data is available)
+charuco-calibrate --ar --camera 0
+
+# Standalone with pre-existing calibration
+charuco-calibrate --ar --calibration calibration_output/calibration.yaml
+
+# Choose object type
+charuco-calibrate --ar --ar-object axes --calibration cal.yaml
+charuco-calibrate --ar --ar-object solid --ar-scale 2.0 --calibration cal.yaml
+
+# Custom OBJ mesh
+charuco-calibrate --ar --ar-object obj --ar-obj-path model.obj --calibration cal.yaml
+```
+
+**Built-in objects:**
+| Object | Description |
+|--------|-------------|
+| `axes` | RGB coordinate axes (X=red, Y=green, Z=blue) at the board origin |
+| `wireframe` | Unit cube sitting on the board surface, edges drawn as green lines (default) |
+| `solid` | Filled cube with semi-transparent colored faces + wireframe overlay |
+| `obj` | Custom Wavefront .obj mesh (vertices + faces), rendered as wireframe |
+
+**How it works:**
+1. Board corners detected each frame (existing detection pipeline)
+2. Board pose estimated via `cv2.solvePnP` using calibrated camera intrinsics
+3. 3D vertices of the chosen object projected to 2D with `cv2.projectPoints`
+4. Drawn on the frame with OpenCV drawing primitives
+5. Pose smoothed with exponential moving average to reduce jitter
+
+**Parameters:**
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--ar-object` | `wireframe` | Object type: `axes`, `wireframe`, `solid`, `obj` |
+| `--ar-obj-path` | — | Path to .obj file (required for `obj` type) |
+| `--ar-scale` | `1.0` | Object scale relative to board square length |
+| `ar.smooth_alpha` | `0.6` | EMA smoothing factor (0=max smooth, 1=no smooth) |
+
+### 19. Synthetic Bokeh / Depth of Field
+
+Apply a synthetic depth-of-field blur to the live feed. The board stays sharp while the background blurs, simulating a shallow-DOF camera or tilt-shift miniature effect:
+
+```bash
+# During calibration
+charuco-calibrate --bokeh --camera 0
+
+# Standalone with calibration file
+charuco-calibrate --bokeh --calibration calibration_output/calibration.yaml
+
+# Lens blur mode (circular disk kernel for bokeh circles)
+charuco-calibrate --bokeh --bokeh-mode lens --calibration cal.yaml
+
+# Combine with AR
+charuco-calibrate --ar --bokeh --calibration cal.yaml
+```
+
+**Focus modes** (toggle with `B` key):
+- **Board focus** (default) — board region stays sharp, everything else blurs
+- **Tilt-shift** — horizontal band of sharpness centered on the board, top/bottom blur
+
+**How it works:**
+1. Convex hull of detected corners defines the "sharp" region
+2. A feathered mask is created (1.0 = sharp, 0.0 = blurred)
+3. Frame is blurred with Gaussian or lens (disk) kernel
+4. Blended: `output = sharp * mask + blurred * (1 - mask)`
+
+**Parameters:**
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--bokeh-strength` | `25` | Max blur kernel size in pixels (must be odd) |
+| `--bokeh-feather` | `31` | Mask edge feathering kernel size (must be odd) |
+| `--bokeh-mode` | `gaussian` | Blur type: `gaussian` or `lens` (disk kernel) |
+
 ### 8. Save & Export
 
 Press **S** to save calibration results:
@@ -260,6 +337,7 @@ See `charuco_calibrator_ros/README.md` for full setup instructions, the complete
 | `H` | Toggle heatmap overlay |
 | `U` | Toggle undistortion preview (after calibration) |
 | `Z` | Undo last captured frame |
+| `B` | Toggle bokeh focus mode (board_focus / tilt_shift) |
 | `Q` / `ESC` | Quit (prompts to save if unsaved calibration exists) |
 
 ---
@@ -287,7 +365,15 @@ See `config/default_config.yaml` for the full reference with all parameters docu
 | `--camera-name <name>` | Camera name written into the YAML |
 | `--print-board <output>` | Generate a printable ChArUco board image and exit |
 | `--visualize` | Enter distortion visualization mode (requires `--calibration`) |
-| `--calibration <path>` | Path to calibration YAML file (used with `--visualize`) |
+| `--calibration <path>` | Path to calibration YAML file (for `--visualize`, `--ar`, or `--bokeh`) |
+| `--ar` | Enable AR object overlay |
+| `--ar-object <type>` | AR object: `axes`, `wireframe`, `solid`, `obj` (default: wireframe) |
+| `--ar-obj-path <path>` | Path to .obj file (required when `--ar-object=obj`) |
+| `--ar-scale <float>` | AR object scale relative to board square length (default: 1.0) |
+| `--bokeh` | Enable synthetic bokeh / depth-of-field effect |
+| `--bokeh-strength <int>` | Max blur kernel size in pixels (default: 25) |
+| `--bokeh-feather <int>` | Mask feathering kernel size (default: 31) |
+| `--bokeh-mode <type>` | Blur type: `gaussian` or `lens` (default: gaussian) |
 
 ### Config Sections
 
@@ -300,6 +386,10 @@ See `config/default_config.yaml` for the full reference with all parameters docu
 **source** — Image source: `camera_id`, `video_path`, `image_folder`, `ros_topic`, `width`, `height`
 
 **output** — Export settings: `output_dir`, `camera_name`, `save_observations`
+
+**ar** — AR overlay settings: `enabled`, `ar_object`, `obj_path`, `scale`, `smooth_alpha`
+
+**bokeh** — Bokeh effect settings: `enabled`, `strength`, `feather`, `blur_mode`, `focus_mode`
 
 **Top-level** — `auto_capture` (bool), `show_heatmap` (bool), `recalibrate_every` (int), `auto_prune` (bool), `prune_threshold` (float), `gpu` (bool)
 

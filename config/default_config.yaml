@@ -32,10 +32,24 @@ output:
   camera_name: camera              # Camera name in calibration YAML
   save_observations: true          # Also save observations.npz
 
-auto_capture: true      # Start with auto-capture enabled
+auto_capture: false      # Start with auto-capture enabled
 show_heatmap: true      # Start with heatmap overlay enabled
 recalibrate_every: 5    # Re-run calibration every N accepted frames
 auto_prune: true        # Auto-remove outlier frames after calibration
 prune_threshold: 2.0    # Prune frames with error > N * mean RMS
 gpu: false              # Enable OpenCL/CUDA GPU acceleration
+
+ar:
+  enabled: false          # Enable AR object overlay
+  ar_object: solid    # Object type: axes, wireframe, solid, obj
+  # obj_path: null        # Path to .obj file (only for ar_object: obj)
+  scale: 1.0              # Object scale relative to board square length
+  smooth_alpha: 0.6       # EMA smoothing factor for pose (0=max smooth, 1=no smooth)
+
+bokeh:
+  enabled: false          # Enable synthetic bokeh / depth-of-field effect
+  strength: 25            # Max blur kernel size in pixels (must be odd)
+  feather: 31             # Mask feathering kernel size in pixels (must be odd)
+  blur_mode: gaussian     # Blur type: gaussian or lens (disk kernel)
+  focus_mode: board_focus # Focus mode: board_focus or tilt_shift
 
