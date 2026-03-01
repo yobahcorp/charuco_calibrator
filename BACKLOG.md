@@ -29,7 +29,29 @@
 
 ---
 
+## Feature 14: Web UI
+
+**Branch:** `feature/web-ui`
+
+**New files:** `charuco_calibrator/web_server.py`, `charuco_calibrator/static/index.html`, `charuco_calibrator/static/app.js`, `charuco_calibrator/static/style.css`
+
+**Modified files:** `charuco_calibrator/main.py`, `charuco_calibrator/config.py`, `pyproject.toml`
+
+- FastAPI backend serving the calibration loop, streaming frames via WebSocket (MJPEG-encoded)
+- Single-page HTML/JS/CSS frontend with proper layout:
+  - Video stream panel (detection overlay + heatmap only, no text overlays)
+  - Side panel: coverage grid, quality meter, per-view error bars, score breakdown
+  - Top bar: frames, auto, RMS, FPS, dictionary
+  - Bottom controls: buttons for capture, auto, calibrate, reset, save, heatmap, undistort, undo
+- Keyboard shortcuts still work in the browser
+- `--web` flag to launch web UI (default), `--no-web` to fall back to OpenCV window
+- Dependencies: `fastapi`, `uvicorn`, `websockets`
+- Existing OpenCV UI remains as fallback
+
+---
+
 ## Priority Order
 
-1. **6** — Stereo calibration (large scope, separate milestone)
-2. **2B** — CUDA acceleration (only if UMat insufficient)
+1. **14** — Web UI (branch: `feature/web-ui`)
+2. **6** — Stereo calibration (large scope, separate milestone)
+3. **2B** — CUDA acceleration (only if UMat insufficient)
