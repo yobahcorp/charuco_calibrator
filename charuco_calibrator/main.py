@@ -141,15 +141,30 @@ def run(cfg: AppConfig) -> int:
     cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_KEEPRATIO)
     cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
+    _last_frame = None
+    _stream_ended = False
+
     try:
         while True:
-            ok, frame = source.read()
-            if not ok or frame is None:
-                # For video files / image folders, we've reached the end
-                if cfg.source.video_path or cfg.source.image_folder:
-                    break
-                time.sleep(0.01)
-                continue
+            if not _stream_ended:
+                ok, frame = source.read()
+                if not ok or frame is None:
+                    if cfg.source.video_path or cfg.source.image_folder:
+                        _stream_ended = True
+                        frame = _last_frame
+                        if frame is None:
+                            break
+                        ui.trigger_flash(
+                            "Stream ended — S:save  C:calibrate  Q:quit",
+                            time.time(),
+                            duration=3.0,
+                        )
+                    else:
+                        time.sleep(0.01)
+                        continue
+                _last_frame = frame
+            else:
+                frame = _last_frame
 
             h, w = frame.shape[:2]
 
