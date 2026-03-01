@@ -83,11 +83,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Enter distortion visualization mode (requires --calibration)",
     )
     parser.add_argument(
+        "--visualize-3d",
+        action="store_true",
+        default=False,
+        help="Enter 3D calibration visualization mode (requires --calibration)",
+    )
+    parser.add_argument(
         "--calibration",
         type=str,
         default=None,
         metavar="YAML_PATH",
-        help="Path to calibration YAML file (used with --visualize)",
+        help="Path to calibration YAML file (used with --visualize or --visualize-3d)",
+    )
+    parser.add_argument(
+        "--observations",
+        type=str,
+        default=None,
+        metavar="NPZ_PATH",
+        help="Path to observations NPZ file (used with --visualize-3d)",
     )
     return parser.parse_args(argv)
 
@@ -466,6 +479,28 @@ def main(argv: list[str] | None = None) -> int:
             print("ERROR: --visualize requires --calibration <path>", file=sys.stderr)
             return 1
         return run_visualize(cfg, cal_path)
+
+    # 3D visualization mode
+    if getattr(args, "visualize_3d", False):
+        cal_path = getattr(args, "calibration", None)
+        if cal_path is None:
+            print("ERROR: --visualize-3d requires --calibration <path>", file=sys.stderr)
+            return 1
+        obs_path = getattr(args, "observations", None)
+        if obs_path is None:
+            # Auto-detect observations.npz next to the calibration YAML
+            auto_npz = Path(cal_path).parent / "observations.npz"
+            if auto_npz.exists():
+                obs_path = str(auto_npz)
+            else:
+                print(
+                    "ERROR: --visualize-3d requires --observations <npz> "
+                    "(or observations.npz next to the calibration YAML)",
+                    file=sys.stderr,
+                )
+                return 1
+        from .visualize_3d import run_visualize_3d
+        return run_visualize_3d(cal_path, obs_path)
 
     return run(cfg)
 

@@ -12,3 +12,6 @@ scipy>=1.10
 
 # Visualization (live overlay, plots, heatmap)
 matplotlib>=3.7
+
+# 3D interactive visualization (WebGL)
+plotly>=5.0

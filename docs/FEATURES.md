@@ -176,6 +176,25 @@ A distortion magnitude heatmap is computed from the calibration parameters and b
 
 The status bar shows RMS, calibration resolution, and display resolution.
 
+### 18. 3D Calibration Visualization
+
+After calibrating and saving, use `--visualize-3d` to explore your calibration in interactive 3D. This opens a Plotly WebGL figure in your browser with four switchable views:
+
+```bash
+charuco-calibrate --visualize-3d --calibration calibration_output/calibration.yaml
+charuco-calibrate --visualize-3d --calibration cal.yaml --observations obs.npz
+```
+
+**Extrinsic View** — Camera frustum drawn at the origin with all captured board poses rendered as colored rectangles in camera-frame coordinates. Boards are colored by per-view reprojection error (green = low, red = high). Small RGB coordinate axes are drawn at each board center. Hover over a board to see its index and error value.
+
+**Reprojection Quiver** — All detected corners from all views plotted as 3D scatter points in camera frame, colored by error magnitude. Cone arrows show the direction and relative size of the 2D reprojection error projected into the camera XY plane.
+
+**Camera Frustum + Board Positions** — The camera field-of-view pyramid drawn at the origin with board center positions plotted as scatter points. Colored by distance from camera. Shows the spatial distribution of calibration views within the FOV.
+
+**Coverage Sphere** — Board viewing directions (normalized translation vectors) plotted on a wireframe unit sphere. Points colored by distance from camera. Radial lines connect each point to the origin. Gaps on the sphere indicate unexplored viewing angles.
+
+The observations NPZ file is auto-detected next to the calibration YAML if `--observations` is not given. For old NPZ files that lack extrinsic data, `cv2.solvePnP` is used automatically to recover board poses.
+
 ### 8. Save & Export
 
 Press **S** to save calibration results:
@@ -205,7 +224,7 @@ projection_matrix:
 rms_reprojection_error: 0.45
 ```
 
-**`observations.npz`** — Raw object points, image points, and corner IDs for every accepted frame. Useful for offline re-calibration or analysis.
+**`observations.npz`** — Raw object points, image points, corner IDs, and (when calibration exists) per-view rotation/translation vectors for every accepted frame. Useful for offline re-calibration, analysis, or 3D visualization.
 
 Output directory defaults to `calibration_output/` and is configurable via `--output-dir`.
 
@@ -287,7 +306,9 @@ See `config/default_config.yaml` for the full reference with all parameters docu
 | `--camera-name <name>` | Camera name written into the YAML |
 | `--print-board <output>` | Generate a printable ChArUco board image and exit |
 | `--visualize` | Enter distortion visualization mode (requires `--calibration`) |
-| `--calibration <path>` | Path to calibration YAML file (used with `--visualize`) |
+| `--visualize-3d` | Enter 3D calibration visualization (requires `--calibration`) |
+| `--calibration <path>` | Path to calibration YAML file (used with `--visualize` / `--visualize-3d`) |
+| `--observations <path>` | Path to observations NPZ file (used with `--visualize-3d`) |
 
 ### Config Sections
 

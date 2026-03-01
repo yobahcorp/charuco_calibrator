@@ -58,7 +58,40 @@ charuco-calibrate --ros-topic /camera/image_raw
 | `S` | Save calibration YAML + observations |
 | `R` | Reset all data |
 | `H` | Toggle heatmap overlay |
+| `U` | Toggle undistortion preview |
+| `Z` | Undo last captured frame |
 | `Q` / `ESC` | Quit |
+
+## Visualization
+
+### Distortion Heatmap (2D)
+
+```bash
+charuco-calibrate --visualize --calibration calibration_output/calibration.yaml
+```
+
+Overlays a distortion magnitude heatmap onto a live stream or video. Press **U** to toggle between heatmap and undistorted preview.
+
+### 3D Calibration Analysis
+
+```bash
+charuco-calibrate --visualize-3d --calibration calibration_output/calibration.yaml
+```
+
+Opens an interactive Plotly WebGL figure in your browser with four switchable views:
+
+| View | What it shows |
+|------|---------------|
+| **Extrinsic View** | Camera frustum at origin + all board poses colored by reprojection error |
+| **Reprojection Quiver** | 3D scatter of detected corners with error direction arrows |
+| **Camera Frustum** | Camera FOV pyramid with board center positions |
+| **Coverage Sphere** | Board viewing directions on a unit sphere, colored by distance |
+
+The observations NPZ file is auto-detected next to the calibration YAML, or specify it explicitly:
+
+```bash
+charuco-calibrate --visualize-3d --calibration cal.yaml --observations obs.npz
+```
 
 ## Configuration
 
@@ -79,6 +112,10 @@ charuco-calibrate --config my_config.yaml --camera 0 --output-dir results/
 | `--ros-topic <topic>` | ROS 2 image topic name |
 | `--output-dir <dir>` | Output directory for calibration files |
 | `--camera-name <name>` | Camera name written into the YAML |
+| `--visualize` | Enter distortion visualization mode (requires `--calibration`) |
+| `--visualize-3d` | Enter 3D calibration visualization (requires `--calibration`) |
+| `--calibration <path>` | Path to calibration YAML (used with `--visualize` / `--visualize-3d`) |
+| `--observations <path>` | Path to observations NPZ (used with `--visualize-3d`) |
 
 ### Config File
 
@@ -171,8 +208,10 @@ charuco_calibrator/
   detector.py        # ChArUco detection (OpenCV 4.8+ OO API with legacy fallback)
   scoring.py         # Frame scoring and coverage tracking
   heatmap.py         # Gaussian-splat corner heatmap
-  calibration.py     # cv2.calibrateCamera wrapper + YAML export
+  calibration.py     # cv2.calibrateCamera wrapper + YAML/NPZ export
   ui.py              # Overlay rendering + keyboard dispatch
+  visualize.py       # Distortion heatmap visualization mode
+  visualize_3d.py    # 3D calibration visualization (Plotly WebGL)
   main.py            # run(cfg) loop + CLI entry point
 config/
   default_config.yaml

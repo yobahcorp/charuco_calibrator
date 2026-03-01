@@ -231,3 +231,63 @@ class TestCalibrationManager:
         pruned, old_rms, new_rms = mgr.prune_outliers()
         assert pruned == 0
         assert old_rms == 0.0
+
+    def test_save_observations_npz_with_extrinsics(
+        self, detector: CharucoDetectorWrapper, tmp_path: Path
+    ):
+        """Verify NPZ includes rvecs/tvecs after calibration."""
+        mgr = CalibrationManager()
+        observations, image_size = _generate_observations(detector, n=8)
+        for obj_pts, img_pts, ids in observations:
+            mgr.add_observation(obj_pts, img_pts, ids)
+        mgr.calibrate(image_size)
+
+        npz_path = tmp_path / "obs_ext.npz"
+        mgr.save_observations_npz(npz_path)
+
+        loaded = np.load(npz_path, allow_pickle=True)
+        assert "rvecs" in loaded
+        assert "tvecs" in loaded
+        assert loaded["rvecs"].shape == (len(observations), 3)
+        assert loaded["tvecs"].shape == (len(observations), 3)
+
+    def test_save_observations_npz_without_calibration(
+        self, detector: CharucoDetectorWrapper, tmp_path: Path
+    ):
+        """NPZ should omit rvecs/tvecs when no calibration result exists."""
+        mgr = CalibrationManager()
+        observations, _ = _generate_observations(detector, n=3)
+        for obj_pts, img_pts, ids in observations:
+            mgr.add_observation(obj_pts, img_pts, ids)
+
+        npz_path = tmp_path / "obs_no_cal.npz"
+        mgr.save_observations_npz(npz_path)
+
+        loaded = np.load(npz_path, allow_pickle=True)
+        assert "rvecs" not in loaded
+        assert "tvecs" not in loaded
+
+    def test_load_observations_npz_roundtrip(
+        self, detector: CharucoDetectorWrapper, tmp_path: Path
+    ):
+        """Verify load_observations_npz returns correct structure."""
+        mgr = CalibrationManager()
+        observations, image_size = _generate_observations(detector, n=6)
+        for obj_pts, img_pts, ids in observations:
+            mgr.add_observation(obj_pts, img_pts, ids)
+        mgr.calibrate(image_size)
+
+        npz_path = tmp_path / "obs_rt.npz"
+        mgr.save_observations_npz(npz_path)
+
+        result = CalibrationManager.load_observations_npz(npz_path)
+        assert len(result["object_points"]) == len(observations)
+        assert len(result["image_points"]) == len(observations)
+        assert "rvecs" in result
+        assert "tvecs" in result
+        assert len(result["rvecs"]) == len(observations)
+        assert result["rvecs"][0].shape == (3, 1)
+
+    def test_load_observations_npz_nonexistent(self):
+        with pytest.raises(FileNotFoundError):
+            CalibrationManager.load_observations_npz("/nonexistent/obs.npz")

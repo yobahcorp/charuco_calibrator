@@ -329,7 +329,7 @@ class CalibrationManager:
         return out
 
     def save_observations_npz(self, path: str | Path) -> Path:
-        """Save all observations as an NPZ archive for reproducibility."""
+        """Save all observations (and rvecs/tvecs if available) as an NPZ archive."""
         out = Path(path)
         out.parent.mkdir(parents=True, exist_ok=True)
 
@@ -337,14 +337,58 @@ class CalibrationManager:
         img_list = [obs.image_points for obs in self.observations]
         id_list = [obs.charuco_ids for obs in self.observations]
 
-        np.savez(
-            out,
+        save_kwargs: dict = dict(
             object_points=np.array(obj_list, dtype=object),
             image_points=np.array(img_list, dtype=object),
             charuco_ids=np.array(id_list, dtype=object),
             image_size=np.array(self.image_size),
         )
+
+        # Persist extrinsics when available (needed for 3D visualization)
+        if (
+            self.result is not None
+            and self.result.valid
+            and self.result.rvecs is not None
+            and self.result.tvecs is not None
+        ):
+            save_kwargs["rvecs"] = np.array(
+                [r.flatten() for r in self.result.rvecs], dtype=np.float64
+            )
+            save_kwargs["tvecs"] = np.array(
+                [t.flatten() for t in self.result.tvecs], dtype=np.float64
+            )
+
+        np.savez(out, **save_kwargs)
         return out
+
+    @staticmethod
+    def load_observations_npz(path: str | Path) -> dict:
+        """Load observations (and optionally rvecs/tvecs) from an NPZ archive.
+
+        Returns:
+            Dict with keys: ``object_points``, ``image_points``,
+            ``charuco_ids``, ``image_size``, and optionally ``rvecs``,
+            ``tvecs``.
+
+        Raises:
+            FileNotFoundError: If the NPZ file does not exist.
+        """
+        p = Path(path)
+        if not p.exists():
+            raise FileNotFoundError(f"Observations file not found: {p}")
+
+        data = np.load(p, allow_pickle=True)
+        result: dict = {
+            "object_points": list(data["object_points"]),
+            "image_points": list(data["image_points"]),
+            "charuco_ids": list(data["charuco_ids"]),
+            "image_size": tuple(data["image_size"]),
+        }
+        if "rvecs" in data:
+            result["rvecs"] = [r.reshape(3, 1) for r in data["rvecs"]]
+        if "tvecs" in data:
+            result["tvecs"] = [t.reshape(3, 1) for t in data["tvecs"]]
+        return result
 
     def reset(self) -> None:
         """Clear all observations and results."""
