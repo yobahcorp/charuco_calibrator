@@ -198,6 +198,38 @@ body {
 
 #flash-overlay.fade-out { opacity: 0; }
 
+/* ===== Start overlay ===== */
+#start-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 20;
+}
+
+#start-overlay.hidden { display: none; }
+
+#start-btn {
+    padding: 14px 48px;
+    border: 2px solid var(--amber);
+    background: rgba(0, 0, 0, 0.7);
+    color: var(--amber);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: background 0.15s, color 0.15s;
+}
+
+#start-btn:hover {
+    background: var(--amber);
+    color: #000;
+}
+
 /* ===== Instrument panel (right side) ===== */
 #side-panel {
     width: 280px;

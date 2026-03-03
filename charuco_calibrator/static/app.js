@@ -7,6 +7,8 @@
   let wsState = null;
   let wsAction = null;
   let flashTimeout = null;
+  let streaming = false;
+  let gotFirstFrame = false;
 
   // ---- WebSocket connections ----
 
@@ -34,6 +36,8 @@
   const videoImg = () => document.getElementById("video-stream");
 
   function onVideoFrame(evt) {
+    if (!streaming && gotFirstFrame) return;
+
     const blob = new Blob([evt.data], { type: "image/jpeg" });
     const url = URL.createObjectURL(blob);
     const img = videoImg();
@@ -41,6 +45,10 @@
     img.src = url;
     if (oldUrl && oldUrl.startsWith("blob:")) {
       URL.revokeObjectURL(oldUrl);
+    }
+
+    if (!gotFirstFrame) {
+      gotFirstFrame = true;
     }
   }
 
@@ -55,6 +63,8 @@
   // ---- UI update from state JSON ----
 
   function updateUI(state) {
+    if (!streaming) return;
+
     setStatValue("stat-frames", state.num_frames);
     setStatValue("stat-fps", state.fps.toFixed(1));
     setStatValue("stat-dict", state.aruco_dict);
@@ -291,6 +301,20 @@
     var btn = evt.target.closest("button[data-action]");
     if (btn) {
       sendAction(btn.dataset.action);
+    }
+  });
+
+  // ---- Start button ----
+
+  function startStreaming() {
+    streaming = true;
+    var overlay = document.getElementById("start-overlay");
+    if (overlay) overlay.classList.add("hidden");
+  }
+
+  document.addEventListener("click", function (evt) {
+    if (evt.target.id === "start-btn") {
+      startStreaming();
     }
   });
 
