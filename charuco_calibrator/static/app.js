@@ -14,20 +14,17 @@
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const base = `${proto}://${location.host}`;
 
-    // Video WebSocket (binary)
     wsVideo = new WebSocket(`${base}/ws/video`);
     wsVideo.binaryType = "arraybuffer";
     wsVideo.onmessage = onVideoFrame;
     wsVideo.onclose = function () { setTimeout(connect, 2000); };
 
-    // State WebSocket (text JSON)
     wsState = new WebSocket(`${base}/ws/state`);
     wsState.onmessage = function (evt) {
       updateUI(JSON.parse(evt.data));
     };
     wsState.onclose = function () { setTimeout(connect, 2000); };
 
-    // Action WebSocket (text, client -> server)
     wsAction = new WebSocket(`${base}/ws/action`);
     wsAction.onclose = function () { setTimeout(connect, 2000); };
   }
@@ -58,48 +55,41 @@
   // ---- UI update from state JSON ----
 
   function updateUI(state) {
-    // Top bar stats
-    setText("stat-frames", "Frames: " + state.num_frames);
-    setText("stat-auto", "Auto: " + (state.auto_capture ? "ON" : "OFF"));
-    setText("stat-fps", "FPS: " + state.fps.toFixed(1));
-    setText("stat-dict", state.aruco_dict);
+    setStatValue("stat-frames", state.num_frames);
+    setStatValue("stat-fps", state.fps.toFixed(1));
+    setStatValue("stat-dict", state.aruco_dict);
 
-    // RMS with color
+    // Auto — toggle LED
+    var autoEl = document.getElementById("stat-auto");
+    autoEl.querySelector(".stat-value").textContent = state.auto_capture ? "ON" : "OFF";
+    autoEl.classList.toggle("on", state.auto_capture);
+
+    // RMS — color-coded LED
     var rmsEl = document.getElementById("stat-rms");
+    var rmsVal = rmsEl.querySelector(".stat-value");
     if (state.rms !== null) {
-      rmsEl.textContent = "RMS: " + state.rms.toFixed(3);
-      rmsEl.className = state.rms < 1.0 ? "good" : state.rms < 2.0 ? "ok" : "bad";
+      rmsVal.textContent = state.rms.toFixed(3);
+      rmsEl.className = "stat-item " + (state.rms < 1.0 ? "good" : state.rms < 2.0 ? "ok" : "bad");
     } else {
-      rmsEl.textContent = "RMS: --";
-      rmsEl.className = "";
+      rmsVal.textContent = "--";
+      rmsEl.className = "stat-item";
     }
 
-    // Calibrating indicator
     toggleHidden("stat-calibrating", !state.is_calibrating);
 
-    // Toggle button active states
     toggleActive("btn-auto", state.auto_capture);
     toggleActive("btn-heatmap", state.show_heatmap);
     toggleActive("btn-undistort", state.show_undistort);
 
-    // Coverage grid
     drawCoverageGrid(state.coverage_grid, state.grid_coverage_pct);
-
-    // Quality meter
     updateQualityMeter(state.quality_meter);
-
-    // Score breakdown
     updateScore(state.score);
-
-    // Per-view errors
     drawErrorBars(state.per_view_errors);
 
-    // Flash message
     if (state.flash && state.flash.active) {
       showFlash(state.flash.text);
     }
 
-    // Prompt
     if (state.prompt) {
       showPrompt(state.prompt);
     } else {
@@ -107,7 +97,14 @@
     }
   }
 
-  // ---- Helper functions ----
+  // ---- Helpers ----
+
+  function setStatValue(id, value) {
+    var el = document.getElementById(id);
+    var valEl = el.querySelector(".stat-value");
+    if (valEl) valEl.textContent = value;
+    else el.textContent = value;
+  }
 
   function setText(id, text) {
     document.getElementById(id).textContent = text;
@@ -122,7 +119,7 @@
     if (el) el.classList.toggle("active", active);
   }
 
-  // ---- Coverage grid (Canvas 2D) ----
+  // ---- Coverage grid ----
 
   function drawCoverageGrid(grid, pct) {
     var canvas = document.getElementById("coverage-grid");
@@ -140,11 +137,12 @@
       for (var c = 0; c < cols; c++) {
         var val = grid[r][c];
         if (val > 0) {
-          var fill = Math.min(val * 30, 200);
-          ctx.fillStyle = "rgb(0, " + fill + ", 0)";
+          var intensity = Math.min(val * 0.15, 0.9);
+          // Amber-tinted coverage
+          ctx.fillStyle = "rgba(232, 160, 32, " + intensity + ")";
           ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
         }
-        ctx.strokeStyle = "#555";
+        ctx.strokeStyle = "#2a2a2a";
         ctx.lineWidth = 1;
         ctx.strokeRect(c * cellW, r * cellH, cellW, cellH);
       }
@@ -186,13 +184,13 @@
 
       var totalEl = document.getElementById("score-total");
       totalEl.textContent = score.total.toFixed(2);
-      totalEl.style.color = score.total >= 0.5 ? "#00cc66" : "#ffcc00";
+      totalEl.style.color = score.total >= 0.5 ? "#4caf50" : "#d4aa30";
 
       rejEl.classList.add("hidden");
     }
   }
 
-  // ---- Per-view error bars (Canvas 2D) ----
+  // ---- Per-view error bars ----
 
   function drawErrorBars(errors) {
     var canvas = document.getElementById("error-bars");
@@ -200,8 +198,8 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (!errors || errors.length === 0) {
-      ctx.fillStyle = "#666";
-      ctx.font = "12px sans-serif";
+      ctx.fillStyle = "#555";
+      ctx.font = "13px -apple-system, sans-serif";
       ctx.fillText("No calibration data", 10, canvas.height / 2);
       return;
     }
@@ -220,20 +218,18 @@
       var barW = (err / Math.max(maxErr, 0.001)) * barAreaW;
       var y = i * barH;
 
-      // Color based on relationship to mean
       if (err > 2.0 * meanErr) {
-        ctx.fillStyle = "#ff4444";
+        ctx.fillStyle = "#e05555";
       } else if (err > 1.5 * meanErr) {
-        ctx.fillStyle = "#ffaa00";
+        ctx.fillStyle = "#d4aa30";
       } else {
-        ctx.fillStyle = "#44cc44";
+        ctx.fillStyle = "#4caf50";
       }
 
       ctx.fillRect(0, y + 1, barW, barH - 2);
 
-      // Error value label
-      ctx.fillStyle = "#ccc";
-      ctx.font = "10px monospace";
+      ctx.fillStyle = "#777";
+      ctx.font = "12px 'SF Mono', 'Consolas', monospace";
       ctx.fillText(err.toFixed(2), barW + 4, y + barH * 0.75);
     }
   }
@@ -289,7 +285,7 @@
     }
   });
 
-  // ---- Button click handlers (event delegation) ----
+  // ---- Button click handlers ----
 
   document.addEventListener("click", function (evt) {
     var btn = evt.target.closest("button[data-action]");
