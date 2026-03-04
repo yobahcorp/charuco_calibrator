@@ -36,12 +36,23 @@ class ImageSource(abc.ABC):
     def is_open(self) -> bool:
         ...
 
+    @property
+    def total_frames(self) -> Optional[int]:
+        """Total number of frames if known, else None."""
+        return None
+
+    @property
+    def frame_index(self) -> int:
+        """Number of frames read so far."""
+        return 0
+
 
 class CameraSource(ImageSource):
     """OpenCV VideoCapture-based image source (webcam or video file)."""
 
     def __init__(self, camera_id: int = 0, video_path: Optional[str] = None,
                  width: int = 0, height: int = 0) -> None:
+        self._is_video = video_path is not None
         if video_path:
             self._cap = cv2.VideoCapture(video_path)
         else:
@@ -52,10 +63,13 @@ class CameraSource(ImageSource):
         if height > 0:
             self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
+        self._frame_index = 0
+
     def read(self) -> tuple[bool, Optional[np.ndarray]]:
         ret, frame = self._cap.read()
         if not ret:
             return False, None
+        self._frame_index += 1
         return True, frame
 
     def release(self) -> None:
@@ -64,6 +78,17 @@ class CameraSource(ImageSource):
     @property
     def is_open(self) -> bool:
         return self._cap.isOpened()
+
+    @property
+    def total_frames(self) -> Optional[int]:
+        if self._is_video:
+            count = int(self._cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            return count if count > 0 else None
+        return None
+
+    @property
+    def frame_index(self) -> int:
+        return self._frame_index
 
 
 class ImageFolderSource(ImageSource):
@@ -97,6 +122,14 @@ class ImageFolderSource(ImageSource):
     @property
     def is_open(self) -> bool:
         return self._index < len(self._files)
+
+    @property
+    def total_frames(self) -> Optional[int]:
+        return len(self._files) if self._files else None
+
+    @property
+    def frame_index(self) -> int:
+        return self._index
 
 
 class RosImageSource(ImageSource):

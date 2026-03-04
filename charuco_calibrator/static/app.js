@@ -9,6 +9,7 @@
   let flashTimeout = null;
   let streaming = false;
   let gotFirstFrame = false;
+  let streamEndNotified = false;
 
   // ---- WebSocket connections ----
 
@@ -86,6 +87,26 @@
     }
 
     toggleHidden("stat-calibrating", !state.is_calibrating);
+
+    // Source progress
+    var progressEl = document.getElementById("stat-progress");
+    if (state.source_frame_index > 0) {
+      progressEl.classList.remove("hidden");
+      var valEl = progressEl.querySelector(".stat-value");
+      if (state.source_total_frames) {
+        var idx = state.stream_ended ? state.source_total_frames : state.source_frame_index;
+        valEl.textContent = idx + " / " + state.source_total_frames;
+      } else {
+        valEl.textContent = state.source_frame_index;
+      }
+    }
+
+    // Stream-end notification
+    if (state.stream_ended && !streamEndNotified) {
+      streamEndNotified = true;
+      progressEl.classList.add("done");
+      showFlash("Done — " + state.source_frame_index + " frames processed");
+    }
 
     toggleActive("btn-auto", state.auto_capture);
     toggleActive("btn-heatmap", state.show_heatmap);
@@ -215,7 +236,12 @@
     }
 
     var maxBars = Math.min(errors.length, 20);
-    var barH = Math.floor(canvas.height / maxBars);
+    var barH = 18;
+    var neededH = maxBars * barH;
+    if (canvas.height !== neededH) {
+      canvas.height = neededH;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     var maxErr = Math.max.apply(null, errors);
     var sum = 0;
     for (var k = 0; k < errors.length; k++) sum += errors[k];

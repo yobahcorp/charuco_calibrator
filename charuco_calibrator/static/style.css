@@ -92,6 +92,8 @@ body {
 #stat-auto.on .led { background: var(--green); box-shadow: 0 0 4px var(--green); }
 #stat-auto.on .stat-value { color: var(--green); }
 
+#stat-progress.done .stat-value { color: var(--green); }
+
 #stat-calibrating {
     margin-left: auto;
     display: flex;
@@ -237,8 +239,6 @@ body {
     background: var(--bg-1);
     border-left: 1px solid var(--border);
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
 }
 
 #side-panel::-webkit-scrollbar { width: 3px; }
@@ -338,7 +338,7 @@ body {
 /* ===== Error bars ===== */
 #error-bars {
     width: 100%;
-    height: 180px;
+    min-height: 40px;
     display: block;
     background: var(--bg-inset);
 }

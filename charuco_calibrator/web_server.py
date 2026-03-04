@@ -75,6 +75,8 @@ def _build_state_dict(
     flash_until: float,
     prompt_text: str,
     stream_ended: bool,
+    source_frame_index: int = 0,
+    source_total_frames: Optional[int] = None,
 ) -> dict:
     """Build the JSON state dict from current calibration state."""
     now = time.time()
@@ -124,6 +126,8 @@ def _build_state_dict(
         "grid_coverage_pct": round(coverage.grid_coverage * 100, 1),
         "quality_meter": round(coverage.quality_meter, 3),
         "per_view_errors": per_view_errors,
+        "source_frame_index": source_frame_index,
+        "source_total_frames": source_total_frames,
         "flash": {
             "text": flash_text,
             "active": now < flash_until,
@@ -211,6 +215,8 @@ def _run_calibration_loop(cfg: AppConfig, web_state: WebState) -> None:
                 _last_frame = frame
             else:
                 frame = _last_frame
+                # Stream ended — only poll for user actions, don't spin
+                time.sleep(0.1)
 
             h, w = frame.shape[:2]
 
@@ -293,14 +299,15 @@ def _run_calibration_loop(cfg: AppConfig, web_state: WebState) -> None:
             except queue.Empty:
                 pass
 
-            # Auto-capture check
+            # Auto-capture check (disabled once stream ends)
             should_capture = False
-            if action == Action.CAPTURE:
-                should_capture = True
-            elif auto_capture and not frame_score.rejected:
-                cooldown = cfg.thresholds.capture_cooldown_ms / 1000.0
-                if now - last_capture_time >= cooldown:
+            if not _stream_ended:
+                if action == Action.CAPTURE:
                     should_capture = True
+                elif auto_capture and not frame_score.rejected:
+                    cooldown = cfg.thresholds.capture_cooldown_ms / 1000.0
+                    if now - last_capture_time >= cooldown:
+                        should_capture = True
 
             # Handle capture
             if should_capture and result.valid and not frame_score.rejected:
@@ -420,6 +427,7 @@ def _run_calibration_loop(cfg: AppConfig, web_state: WebState) -> None:
                         show_heatmap, show_undistort, fps,
                         cfg.board.aruco_dict, cal_manager.is_calibrating,
                         flash_text, flash_until, prompt_text, _stream_ended,
+                        source.frame_index, source.total_frames,
                     )
                     _, jpeg_buf = cv2.imencode(
                         ".jpg", vis, [cv2.IMWRITE_JPEG_QUALITY, 80]
